@@ -181,10 +181,11 @@ app.get('/refresh', async function(req, res) {
     let momentData = moment(expiresAt)
 
     // If the access token is not expired yet, return
-    if (moment().isAfter(momentData)){
-      res.status(400).json({'message': 'Existing access token still valid.'});      
-      return
-    }
+    // if (moment().isBefore(momentData)){
+    //   console.log("Access token is still valid, returning.")
+    //   res.status(400).json({'message': 'Existing access token still valid.'});      
+    //   return
+    // }
 
   } catch (error) {
     res.status(400).json({'message': 'Error checking token validity.'});
@@ -225,15 +226,16 @@ app.get('/refresh', async function(req, res) {
     }
 
 
-    let refresh_token = data.refresh_token;
-    if (refresh_token !== null) {
-      const refreshAction = await sql.query`
-      UPDATE Test
-      SET
-        Refresh_Token = ${refresh_token} 
-      WHERE id = ${1}
-    `
-    }
+    // let refresh_token = data.refresh_token;
+    // console.log('refresh token:', refresh_token)
+    // if (refresh_token !== null) {
+    //   const refreshAction = await sql.query`
+    //   UPDATE Test
+    //   SET
+    //     Refresh_Token = ${refresh_token} 
+    //   WHERE id = ${1}
+    // `
+    // }
 
     console.log('Refresh successful.')
     res.status(200)
