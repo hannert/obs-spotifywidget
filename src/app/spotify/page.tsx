@@ -1,73 +1,94 @@
 'use client'
 
 import dotenv from 'dotenv';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
-import { songDataStore } from '../store';
+import { songDataStore, userDataStore } from '../store';
 
 export default function Home() {
   dotenv.config({ path: '.env' });
-  const router = useRouter();
 
-  const redirectUri = 'http://localhost:3000/callback';
+  const BACKEND_URL = 'http://localhost:3001'
+
+  const accessToken = userDataStore((state) => state.accessToken);
+  const setAccessToken = userDataStore((state) => state.setAccess);
+  const refreshToken = userDataStore((state) => state.refreshToken);
+  const setRefreshToken = userDataStore((state) => state.setRefresh);
+  const getTokensAction = userDataStore((state) => state.getTokens);
+  const refreshTokensAction = userDataStore((state) => state.refreshTokens);
+
 
   const currentSong = songDataStore((state) => state.currentSong);
   const setSong = songDataStore((state) => state.setSong);
 
   const searchParams = useSearchParams();
-  const refresh = searchParams.get('refresh')
+  const id = searchParams.get('id')
 
   let songData: any = {}
 
   useEffect(() => {
-    getRefreshToken();
+    // Set tokens in app when loading in
+
+    try {
+      if (id !== null) {
+        getTokensActionHelper();
+      }
+      
+    } catch (error) {
+
+    }
+    //getRefreshedToken();
     //let awesome = setInterval(getSong, 1000)
   }, [])
 
+  const getTokensActionHelper = async () => {
+    if (id !== null){
+      const tokens =  await getTokensAction(id);
+      if (tokens !== null){
+        setAccessToken(tokens.Access_Token);
+        setRefreshToken(tokens.Refresh_Token);
+      }
+      console.log(tokens)
 
-
-  const getRefreshToken = async () => {
-
-    // refresh token that has been previously stored
-    const refreshToken = refresh
-    console.log(refreshToken)
-    const url = "https://accounts.spotify.com/api/token";
- 
-     const payload = {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/x-www-form-urlencoded',
-         'Authorization': 'Basic ' + (Buffer.from(process.env.client_id + ':' + process.env.client_secret).toString('base64')),
-       },
-       body: new URLSearchParams({
-         'grant_type': 'refresh_token',
-         'refresh_token': refreshToken as string,
-       }),
-     }
-     const body = await fetch(url, payload);
-     const response = await body.json();
-     console.log(response)
-     window.sessionStorage.setItem('access_token', response.accessToken);
-     if (response.refreshToken) {
-      window.sessionStorage.setItem('refresh_token', response.refreshToken);
-     }
+    }  
   }
 
+  // Request to backend
+  const getRefreshedToken = () => {
+    try {
+      if (id !== null){
+        const response =  getTokensAction(id)
+        console.log(response)
+      }
+      
+    } catch (error) {
+
+    }
+
+  }
+
+  function testRefresh() {
+    console.log(id, refreshToken)
+    if(id !== null && refreshToken !== null){
+      const test = refreshTokensAction(id, refreshToken);      
+    }
+
+  }
+
+
+  // Stays in client to get song data
   function getSong() {
 
-    let token = window.sessionStorage.getItem('access_token')
     fetch('https://api.spotify.com/v1/me/player', {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer ' + token,
+        'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
     }).then(async (res: Response) => {
       if (res.status === 401) {
         // Refresh token
         getRefreshToken();
-
-
       }
       if (res.body !== null){
         let a = await res.json();
@@ -95,6 +116,7 @@ export default function Home() {
           {currentSong?.item?.name} <br/>
           {(currentSong?.progress_ms / currentSong?.item?.duration_ms)}
         </div>
+        <button onClick={() => testRefresh()}>test</button>
       </main>
       <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
 

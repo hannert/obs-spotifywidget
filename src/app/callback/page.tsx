@@ -1,12 +1,10 @@
 'use client'
-
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { songDataStore } from '../store';
 
 export default function Home() {
-  dotenv.config({ path: '.env' });
   const router = useRouter();
 
   const redirectUri = 'http://localhost:3000/callback';
@@ -18,8 +16,7 @@ export default function Home() {
   const code = searchParams.get('code')
   if (code !== null) {
     // save to database
-
-    window.sessionStorage.setItem('code', code)  
+    fetch('http://localhost:3001')
     router.push('/callback')
   }
 
@@ -49,16 +46,6 @@ export default function Home() {
       },
       body: awesome
     }).then(async (response) => {
-      // if (response.status === 400) {
-      //   router.push('https://accounts.spotify.com/authorize?' +
-      //     new URLSearchParams({
-      //       response_type: 'code',
-      //       client_id: client_id,
-      //       redirect_uri: 'http://localhost:3000/callback',
-      //       scope: 'user-read-playback-state user-read-currently-playing' 
-      //     }))
-      // }
-
 
       let a = await response.json();
       console.log(a)
