@@ -170,7 +170,7 @@ app.get('/token', async  (req: Request, res: Response) => {
 app.get('/refresh', async function(req, res) {
   var id = req.query.id;
   var refresh_token = req.query.refresh as string;
-
+  console.log('173', id, refresh_token)
   // Check if refresh is needed?
   try{
     const refreshResponse = await sql.query`
@@ -181,11 +181,11 @@ app.get('/refresh', async function(req, res) {
     let momentData = moment(expiresAt)
 
     // If the access token is not expired yet, return
-    // if (moment().isBefore(momentData)){
-    //   console.log("Access token is still valid, returning.")
-    //   res.status(400).json({'message': 'Existing access token still valid.'});      
-    //   return
-    // }
+    if (moment().isBefore(momentData)){
+      console.log("Access token is still valid, returning.")
+      res.status(400).json({'message': 'Existing access token still valid.'});      
+      return
+    }
 
   } catch (error) {
     res.status(400).json({'message': 'Error checking token validity.'});
@@ -216,7 +216,7 @@ app.get('/refresh', async function(req, res) {
         // Save into DB
 
     let access_token = data.access_token;
-    if (access_token !== null) {
+    if (access_token !== null && access_token !== undefined) {
       const accessAction = await sql.query`
       UPDATE Test
       SET
@@ -238,7 +238,7 @@ app.get('/refresh', async function(req, res) {
     // }
 
     console.log('Refresh successful.')
-    res.status(200)
+    res.status(200).json({data: access_token})
     return
       
 

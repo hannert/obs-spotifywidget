@@ -5,8 +5,8 @@ import { create } from 'zustand';
 interface UserState {
   accessToken: string,
   refreshToken: string,
-  setAccess: (newToken: string) => void,
-  setRefresh: (newToken: string) => void,
+  setAccess: (newToken: string) => string,
+  setRefresh: (newToken: string) => Promise<string>,
   getTokens: (id: string) => any,
   refreshTokens: (id: string, refreshToken: string) => any,
 
@@ -15,10 +15,16 @@ interface UserState {
 export const userDataStore = create<UserState>()((set) => ({
   accessToken: '',
   refreshToken: '',
-  setAccess: (newToken: string) => set(() => ({accessToken: newToken})),
-  setRefresh: (newToken: string) => {
-    console.log(newToken)
-    set(() => ({refreshToken: newToken}))},
+  setAccess: (newToken: string) => {
+    console.log('new access token:', newToken);
+    set(() => ({accessToken: newToken}));
+    return newToken;
+  },
+  setRefresh: async (newToken: string) => {
+    console.log('new refresh token:', newToken)
+    set(() => ({refreshToken: newToken}));
+    return newToken
+  },
   getTokens: async (id: string) =>  {
     const response = await fetch('http://localhost:3001/token' + '?id=' + id)
     const body = await response.json();
