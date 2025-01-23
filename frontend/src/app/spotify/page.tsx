@@ -10,19 +10,11 @@ import { songDataStore, userDataStore } from '../store';
 export default function Home() {
   dotenv.config({ path: '.env' });
 
-  const BACKEND_URL = 'http://localhost:3001'
-
-  // const accessToken = userDataStore((state) => state.accessToken);
-  const setAccessToken = userDataStore((state) => state.setAccess);
-  // const refreshToken = userDataStore((state) => state.refreshToken);
-  const setRefreshToken = userDataStore((state) => state.setRefresh);
   const getTokensAction = userDataStore((state) => state.getTokens);
   const refreshTokensAction = userDataStore((state) => state.refreshTokens);
 
-
-
-  var access_token: string;
-  var refresh_token: string;
+  let access_token: string;
+  let refresh_token: string;
 
   let songFetchLoop: any;
 
@@ -31,12 +23,10 @@ export default function Home() {
 
   const searchParams = useSearchParams();
   const id = searchParams.get('id')
-
-  let songData: any = {}
+  // const dev = searchParams.get('dev')
 
   useEffect(() => {
     // Set tokens in app when loading in
-
     try {
       if (id !== null) {
         startHelper();
@@ -51,12 +41,8 @@ export default function Home() {
     if (id !== null){
       const tokens =  await getTokensAction(id);
       if (tokens !== null){
-        // let tempToken = await setAccessToken(tokens.Access_Token);
-        // let tempRefreshToken = await setRefreshToken(tokens.Refresh_Token); 
-
         access_token = tokens.Access_Token;
         refresh_token = tokens.Refresh_Token;
-        //testGetSong()
         // Start interval for data retrieval
         setRepeat();
       }
@@ -98,9 +84,8 @@ export default function Home() {
         return;
       }
     }
-    if (response.body !== null){
+    if (response.status === 200 && response.body !== null){
       let data = await response.json();
-      songData = data
       setSong(data)
       console.log(data)
     }
@@ -110,26 +95,28 @@ export default function Home() {
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      CALLBACK
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
+      <main className="flex flex-row gap-8 row-start-2 items-center sm:items-start">
 
 
-          
-          
-          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div className="bg-blue-600 h-2.5 rounded-full" 
-            style={{width: ((currentSong?.progress_ms / currentSong?.item?.duration_ms) * 100)}}></div>
+        <div>
+          <img src={currentSong?.item?.album.images[2].url} />
+        </div>
+        <div>
+          <div className="w-64 whitespace-nowrap overflow-hidden">{currentSong?.item?.name}</div>
+          <div className="w-64 flex gap-4 items-center flex-col sm:flex-row">
+            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+              <div className="bg-blue-600 h-2.5 rounded-full" 
+              style={{width: ((currentSong?.progress_ms / currentSong?.item?.duration_ms) * 100) + '%'}}></div>
+            </div>
+          </div>
+          <div className="w-32">
+            {Math.floor((currentSong?.progress_ms / 1000) / 60) + ':' + Math.trunc((currentSong?.progress_ms / 1000) % 60).toString().padStart(2, '0')}/ 
+            {Math.floor((currentSong?.item?.duration_ms / 1000) / 60) + ':' + Math.trunc((currentSong?.item?.duration_ms / 1000) % 60).toString()}
           </div>
         </div>
-        <button onClick={() => testRefresh()}>test</button>
-        <button onClick={() => {setRepeat(accessToken)}}>Get Song Data</button>
-        {currentSong?.item?.name} <br/>
-        {(currentSong?.progress_ms / currentSong?.item?.duration_ms)}
-        <button onClick={() => clearInterval(songFetchLoop)}>
+        {/* <button onClick={() => clearInterval(songFetchLoop)}>
           STOP
-        </button>
+        </button> */}
       </main>
       <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
 

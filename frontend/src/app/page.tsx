@@ -46,9 +46,7 @@ export default function Home() {
           </a>
 
         </div>
-        <a href={('http://localhost:3001/login')}>
-          Refirect
-        </a>
+
       </main>
       <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
 
