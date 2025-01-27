@@ -3,15 +3,15 @@
 import dotenv from 'dotenv';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
-import { songDataStore, userDataStore } from '../store';
+import { songDataStore, spotifyDataStore } from '../../store';
 
 
 
-export default function Home() {
+export default function Spotify() {
   dotenv.config({ path: '.env' });
 
-  const getTokensAction = userDataStore((state) => state.getTokens);
-  const refreshTokensAction = userDataStore((state) => state.refreshTokens);
+  const getTokensAction = spotifyDataStore((state) => state.getTokens);
+  const refreshTokensAction = spotifyDataStore((state) => state.refreshTokens);
 
   let access_token: string;
   let refresh_token: string;
@@ -90,7 +90,6 @@ export default function Home() {
       console.log(data)
     }
   }
-
 
 
   return (

@@ -8,10 +8,11 @@ export async function handleSpotifyLink(req: Request, res: Response) {
   var code = req.query.code || null;
   var URL = 'https://accounts.spotify.com/api/token';
 
+  console.log(process.env.client_id)
   // Need to get client_id and client_secret saved in DB
   var headers = new Headers({
     'content-type': 'application/x-www-form-urlencoded',
-    'Authorization': 'Basic ' + (Buffer.from(res.locals.client_id + ':' + res.locals.client_secret).toString('base64'))
+    'Authorization': 'Basic ' + (Buffer.from( process.env.client_id + ':' + process.env.client_secret).toString('base64'))
   });
 
   var body = new URLSearchParams({
@@ -100,6 +101,8 @@ export async function getTokens(req: Request, res: Response) {
 // region Refresh Tokens
 // Refresh access token
 export async function refreshTokens(req: Request, res: Response) {
+  console.log("refreshing token")
+  console.log(process.env.client_id)
   var id = req.query.id;
   var refresh_token = req.query.refresh as string;
   // Check if refresh is needed?
@@ -125,7 +128,7 @@ export async function refreshTokens(req: Request, res: Response) {
   var URL = 'https://accounts.spotify.com/api/token';
   var headers = new Headers({
       'content-type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + (Buffer.from(res.locals.client_id + ':' + res.locals.client_secret).toString('base64'))
+      'Authorization': 'Basic ' + (Buffer.from(process.env.client_id + ':' + process.env.client_secret).toString('base64'))
   });
   var body = new URLSearchParams({
     'grant_type': 'refresh_token',

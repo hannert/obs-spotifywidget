@@ -2,7 +2,9 @@ import cors from 'cors';
 import 'dotenv/config';
 import express, { Express } from 'express';
 import sql from 'mssql';
+import { handleLogin, handleRegister, queryUsername } from './auth';
 import { getTokens, handleSpotifyLink, refreshTokens, saveTokens } from './data';
+import { jwtMiddleware } from './jwtMiddleware';
 
 
 console.log(process.env.DB_USER)
@@ -13,9 +15,20 @@ let client_secret = process.env.client_secret
 var redirect_uri = 'http://localhost:' + process.env.PORT + '/callback';
 
 const app: Express = express();
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
 
-app.use(cors())
 
+
+
+// region Middleware
+app.use(cors({
+  credentials: true,
+  origin: 'http://localhost:3000'
+}))
+app.use(cookieParser())
+app.use(express.json())
+app.use(jwtMiddleware)
 
 
 // region Database 
@@ -45,18 +58,18 @@ async function connectToDb() {
 // region Data Handling
 // TODO Have a front end link that calls this route and gives feedback
 app.get('/callback', handleSpotifyLink);
-app.post('/token', saveTokens)
-app.get('/token', getTokens)
+app.post('/token', saveTokens);
+app.get('/token', getTokens);
 app.get('/refresh', refreshTokens);
 
 
 // region Authentication
-app.post('/auth/login')
-app.post('/auth/register')
-
+app.post('/auth/login', handleLogin);
+app.post('/auth/register', handleRegister);
+app.post('/auth/query/username', queryUsername);
 
 
 app.listen(process.env.port, () => {
-  console.log('Listening');
+  console.log('Listening', process.env.port);
   connectToDb();
 })
