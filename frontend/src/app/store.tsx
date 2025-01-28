@@ -120,11 +120,11 @@ export const userDataStore = create<credentials>((set) => ({
 interface spotifyState {
   accessToken: string,
   refreshToken: string,
-  clientId: string,
+  clientID: string,
   clientSecret: string,
   linkSecret: string,
-  setClientId: (newId: string) => void,
-  setClientSecret: (newSecret: string) => void,
+  saveClientID: (newId: string) => Promise<number>,
+  saveClientSecret: (newSecret: string) => Promise<number>,
   setAccess: (newToken: string) => string,
   setRefresh: (newToken: string) => Promise<string>,
   getTokens: (id: string) => any,
@@ -137,14 +137,34 @@ interface spotifyState {
 export const spotifyDataStore = create<spotifyState>()((set) => ({
   accessToken: '',
   refreshToken: '',
-  clientId: '',
+  clientID: '',
   clientSecret: '',
   linkSecret: '',
-  setClientId: (newId: string) => {
-
+  saveClientID: async (newId: string) => {
+    const response = await fetch(backendURL + '/client/id', {
+      method: 'POST',
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      }),
+      credentials: 'include',
+      body: JSON.stringify({
+        client_id: newId
+      })
+    })
+    return response.status;
   },
-  setClientSecret: (newSecret: string) => {
-
+  saveClientSecret: async (newSecret: string) => {
+    const response = await fetch(backendURL + '/client/secret', {
+      method: 'POST',
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      }),
+      credentials: 'include',
+      body: JSON.stringify({
+        client_secret: newSecret
+      })
+    })
+    return response.status;
   },
   setAccess: (newToken: string) => {
     console.log('new access token:', newToken);
@@ -157,16 +177,32 @@ export const spotifyDataStore = create<spotifyState>()((set) => ({
     return newToken
   },
   getTokens: async (id: string) =>  {
-    const response = await fetch('http://localhost:3001/token' + '?id=' + id)
+    const response = await fetch('http://localhost:3001/token' + '?id=' + id, {
+      credentials: 'include',
+    })
     const body = await response.json();
     console.log(body.data)
     return body.data;
   },
-  getClients: () => {
-
+  getClients: async () => {
+    try{
+      const response = await fetch(backendURL + '/client', {
+        credentials: 'include',
+      })
+      const body = await response.json();
+      console.log(body.data)
+      return body.data;
+    } catch (error) {
+      
+    }
   },
-  getLinkSecret: () => {
-
+  getLinkSecret: async () => {
+    const response = await fetch(backendURL + '/secret', {
+      credentials: 'include',
+    })
+    const body = await response.json();
+    console.log(body.data)
+    return body.data;
   },
   refreshTokens: async (id: string, refreshToken: string) => {
     const response = await fetch('http://localhost:3001/refresh' + '?id=' + id + '&refresh=' + refreshToken)

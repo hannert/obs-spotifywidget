@@ -1,6 +1,123 @@
+import * as crypto from 'crypto';
 import { Request, Response } from "express";
 import moment from "moment";
 import sql from "mssql";
+
+// region
+export async function saveClientId(req: Request, res: Response) {
+  const user_id = res.locals.session_data.userID;
+  const client_id = req.body.client_id;
+  console.log(user_id, client_id)
+  try {
+    const result = await sql.query`
+      UPDATE Test
+      SET
+        Client_Id = ${client_id} 
+      WHERE id = ${user_id}
+    `;
+    if (result.rowsAffected[0] === 1){
+      res.status(200).json({ message: 'Client ID updated successfully!' });
+      return;
+    }
+  } catch (error) {
+    console.log(error);
+  }
+  res.status(500).json('Error saving Client ID.');
+}
+
+export async function saveClientSecret(req: Request, res: Response) {
+  const user_id = res.locals.session_data.userID;
+  const client_secret = req.body.client_secret
+
+  try {
+    const result = await sql.query`
+      UPDATE Test
+      SET
+        Client_Secret = ${client_secret} 
+      WHERE id = ${user_id}
+    `;
+    if (result.rowsAffected[0] === 1) {
+      res.status(200).json({ message: 'Client Secret updated successfully!' });
+      return;      
+    }
+  } catch (error) {
+    console.log(error);
+  }
+  res.status(500).json('Error saving Client Secret.');
+}
+
+export async function getClient(req: Request, res: Response) {
+  const user_id = res.locals.session_data.userID;
+  console.log(user_id)
+  try {
+    const result = await sql.query`
+      SELECT Client_ID, Client_Secret FROM Test 
+      WHERE id = ${user_id}
+    `;
+    let data = result.recordset[0]
+    res.status(200).json({ data: data });
+    return;
+  } catch (error) {
+    console.log(error);
+  }
+  res.status(500).json('Error getting Client ID & Secret.');
+}
+
+export async function getLinkSecret(req: Request, res: Response) {
+  const user_id = res.locals.session_data.userID;
+
+  try {
+    const result = await sql.query`
+      SELECT App_Secret FROM Test 
+      WHERE id = ${user_id}
+    `;
+    let data = result.recordset[0]
+    res.status(200).json({ data: data });
+    return;
+  } catch (error) {
+    console.log(error);
+  }
+  res.status(500).json({message: 'Error getting App Secret.'});
+}
+
+
+async function generateSecret() {
+  while (true) {
+    let newSecret = crypto.randomBytes(16).toString('base64');
+    console.log('generate', newSecret)
+    const resultDuplicate = await sql.query`
+      SELECT Expires_At FROM Test WHERE App_Secret = ${newSecret}
+    `;
+
+    if (resultDuplicate.rowsAffected[0] === 0) {
+      return newSecret
+    }
+  }
+}
+
+
+export async function regenerateSecret(req: Request, res: Response) {
+  const user_id = res.locals.session_data.userID;
+
+  try {
+    // Check if secret is in DB
+    let newSecret = generateSecret()
+    console.log('new secret', newSecret)
+
+    const result = await sql.query`
+      UPDATE Test
+      SET App_Secret = ${newSecret} 
+      WHERE id = ${user_id}
+    `;
+
+    let data = result.recordset[0]
+    res.status(200).json({ data: data });
+    return;
+  } catch (error) {
+    console.log(error);
+  }
+  res.status(500).json({ message: 'Error getting App Secret.'});
+}
 
 // region Link Applications
 export async function handleSpotifyLink(req: Request, res: Response) {

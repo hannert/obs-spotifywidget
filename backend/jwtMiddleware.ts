@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 export const jwtMiddleware = async function (req: Request, res: Response, next) {
   // These paths will be non secure paths, users do not have to be logged in to access
   let nonSecureFlag = false
-  const nonSecurePaths = ['/', '/about', 'contact', '/auth/login', '/refresh', '/register', '/query/username', '/query/email']
+  const nonSecurePaths = ['/', '/about', 'contact', '/auth/login', '/refresh', '/auth/register', '/auth/query/username', '/query/email']
   
   for (let i = 0; i < nonSecurePaths.length; i++){
     if (req.path === nonSecurePaths[i]) {
@@ -20,15 +20,17 @@ export const jwtMiddleware = async function (req: Request, res: Response, next) 
     // Verify the JWT token
     try {
       //let token = authHeader.split(' ')[1]
-      let token = req.cookies['sw_access_token'] as string
+      let token = req.cookies.spotify_accessToken as string
+      console.log(token)
       //console.log('Verifying JWT Token:', token)
       let verSession = jwt.verify(token, process.env.JWT_SECRET as string)
-      //console.log('verSession:', verSession)
+      console.log('verSession:', verSession)
       // Set user data for the subsequent request 
       res.locals.session_data = verSession;
       // c.set('UserID', userID)
-      await next();
+      next();
     } catch (error) {
+      console.log(error)
       res.status(400).json({message: 'Unauthorized/Invalid token.'})
       return
     }

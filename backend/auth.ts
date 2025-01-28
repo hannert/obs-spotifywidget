@@ -4,6 +4,7 @@ import * as crypto from 'crypto';
 import { Request, Response } from 'express';
 import moment from 'moment';
 import sql from 'mssql';
+import { JwtPayload } from 'jsonwebtoken';
 
 var jwt = require('jsonwebtoken');
 
@@ -25,7 +26,7 @@ export async function queryUsername (req: Request, res: Response) {
   return
 }
 
-// Register
+// region Register
 export async function handleRegister(req: Request, res: Response) {
   const { username, password, email } = req.body;
 
@@ -43,7 +44,7 @@ export async function handleRegister(req: Request, res: Response) {
       return 
     }
 
-    let newSalt = crypto.randomBytes(16)
+    let newSalt = crypto.randomBytes(16).toString('base64');
     console.log(newSalt)
     let saltedPW = password + newSalt
 
@@ -80,7 +81,7 @@ export async function handleRegister(req: Request, res: Response) {
 }
 
 
-
+// region Login
 export async function handleLogin(req: Request, res: Response) {
   // Create a JWT token to send back to user
   // Server recieves username and password 
@@ -92,7 +93,7 @@ export async function handleLogin(req: Request, res: Response) {
   const {dev} = req.headers;
   console.log('dev', dev);
   const { username, password } = req.body;
-
+  console.log(username, password)
   if (!username || !password) {
     res.status(400).json({message: 'invalid username or password'});
     return
@@ -101,7 +102,7 @@ export async function handleLogin(req: Request, res: Response) {
   try {
     console.log("auth trying to find username ", username)
     const result = await sql.query`SELECT UserID, Username, HashedPassword, PasswordSalt FROM Users WHERE Username = ${username}`;
-
+    console.log(result)
     // Username is not found in the system
     if (result.rowsAffected[0] === 0) {
       res.status(400).json({message: 'invalid username or password'});
@@ -109,10 +110,10 @@ export async function handleLogin(req: Request, res: Response) {
     }
     let salt = result.recordset[0].PasswordSalt
     let saltedPW = password + salt
-    
+    console.log(result.recordset[0].HashedPassword, saltedPW)
     try {
       const match = await argon2.verify(result.recordset[0].HashedPassword, saltedPW)
-
+      console.log(match)
       if (match === false) {
         console.log('Invalid login.')
         res.status(401).json({message: 'Invalid credentials.'});
@@ -203,4 +204,40 @@ export async function handleLogin(req: Request, res: Response) {
       return
     }
   }
+}
+
+// region Refresh
+export async function handleRefresh(req: Request, res: Response) {
+  const refreshToken = req.cookies['spotify_refresh_token']
+  console.log(refreshToken)
+  try {
+    // Verify that the refresh token is still valid
+    let decodedToken = jwt.verify(refreshToken as string, process.env.JWT_SECRET as string) as JwtPayload
+
+    let result = await sql.query`SELECT UserID, Username, HashedRefreshToken FROM Users WHERE Username = ${decodedToken.username}`;
+
+    // Hashed refresh token matches, correct user
+    if (
+      (result.rowsAffected[0] === 1) && 
+      (await argon2.verify(result.recordset[0].HashedRefreshToken, refreshToken as string) === true
+    )) {
+      let userID = result.recordset[0].UserID;
+      let username = result.recordset[0].Username;
+
+      let accessToken = jwt.sign({username: username, userID: userID}, process.env.JWT_SECRET as string, { expiresIn: '1h' })
+
+      res.cookie('todo_accessToken', accessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+      });
+      res.status(200).json({ message: 'Successful access token refresh.'});
+      return
+    }
+  } catch (error) {
+    res.status(400).json({ message: 'Error verifying token.'});
+    return
+  }
+  res.status(500).json({ message: 'Unsuccessful token refresh.'});
+  return
 }

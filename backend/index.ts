@@ -2,8 +2,8 @@ import cors from 'cors';
 import 'dotenv/config';
 import express, { Express } from 'express';
 import sql from 'mssql';
-import { handleLogin, handleRegister, queryUsername } from './auth';
-import { getTokens, handleSpotifyLink, refreshTokens, saveTokens } from './data';
+import { handleLogin, handleRefresh, handleRegister, queryUsername } from './auth';
+import { getClient, getLinkSecret, getTokens, handleSpotifyLink, refreshTokens, saveClientId, saveClientSecret, saveTokens } from './data';
 import { jwtMiddleware } from './jwtMiddleware';
 
 
@@ -56,6 +56,12 @@ async function connectToDb() {
 }
 
 // region Data Handling
+app.get('/client', getClient);
+app.post('/client/id', saveClientId);
+app.post('/client/secret', saveClientSecret);
+
+
+app.get('/secret', getLinkSecret)
 // TODO Have a front end link that calls this route and gives feedback
 app.get('/callback', handleSpotifyLink);
 app.post('/token', saveTokens);
@@ -67,7 +73,7 @@ app.get('/refresh', refreshTokens);
 app.post('/auth/login', handleLogin);
 app.post('/auth/register', handleRegister);
 app.post('/auth/query/username', queryUsername);
-
+app.post('/auth/refresh', handleRefresh);
 
 app.listen(process.env.port, () => {
   console.log('Listening', process.env.port);
