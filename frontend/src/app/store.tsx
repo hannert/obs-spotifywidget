@@ -1,3 +1,5 @@
+'use client'
+
 import 'dotenv/config';
 import { create } from 'zustand';
 
@@ -11,7 +13,8 @@ interface credentials {
   register: (username: string, password: string, email: string) => Promise<number>,
   checkUsername: (username: string) => Object,
   checkEmail: (email: string) => Object,
-  setUsername: (username: string) => void
+  setUsername: (username: string) => void,
+  refresh: () => Promise<any>
 }
 
 export const userDataStore = create<credentials>((set) => ({
@@ -20,8 +23,6 @@ export const userDataStore = create<credentials>((set) => ({
   login: async (username: string, password: string) => {
     console.log(username, password)
     try{
-
-    
     const response = await fetch(backendURL + '/auth/login', {
       method: 'POST',
       credentials: 'include',
@@ -49,11 +50,11 @@ export const userDataStore = create<credentials>((set) => ({
     return 0
   },
   logout: async () => {
-    const response = await fetch(backendURL + '/logout', {
+    console.log('Logging out')
+    const response = await fetch(backendURL + '/auth/logout', {
       method: 'POST',
       credentials: 'include',
     })
-    set({username: undefined})
     console.log('Logging out in data-store.tsx')
     return response.status
   },
@@ -114,6 +115,24 @@ export const userDataStore = create<credentials>((set) => ({
   },
   setUsername: (username: string) => {
     set({username: username})
+  },
+  refresh: async () => {
+    try {
+      const response = await fetch(backendURL + '/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email
+        })
+      })
+      const returnJSON = await response.json
+      return returnJSON
+    } catch (error) {
+      console.log(error)
+    }
+    return {}
   }
 }))
 
@@ -130,6 +149,7 @@ interface spotifyState {
   getTokens: (id: string) => any,
   getClients: () => any,
   getLinkSecret: () => any,
+  regenerateSecret: () => any,
   refreshTokens: (id: string, refreshToken: string) => any,
 
 }
@@ -141,17 +161,23 @@ export const spotifyDataStore = create<spotifyState>()((set) => ({
   clientSecret: '',
   linkSecret: '',
   saveClientID: async (newId: string) => {
-    const response = await fetch(backendURL + '/client/id', {
-      method: 'POST',
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      }),
-      credentials: 'include',
-      body: JSON.stringify({
-        client_id: newId
+    try {
+      const response = await fetch(backendURL + '/client/id', {
+        method: 'POST',
+        headers: new Headers({
+          'Content-Type': 'application/json'
+        }),
+        credentials: 'include',
+        body: JSON.stringify({
+          client_id: newId
+        })
       })
-    })
-    return response.status;
+      return response.status;
+    } catch (error) {
+
+    }
+
+    return 400
   },
   saveClientSecret: async (newSecret: string) => {
     const response = await fetch(backendURL + '/client/secret', {
@@ -176,13 +202,11 @@ export const spotifyDataStore = create<spotifyState>()((set) => ({
     set(() => ({refreshToken: newToken}));
     return newToken
   },
-  getTokens: async (id: string) =>  {
-    const response = await fetch('http://localhost:3001/token' + '?id=' + id, {
-      credentials: 'include',
-    })
+  getTokens: async (secret: string) =>  {
+    const response = await fetch('http://localhost:3001/token' + '?secret=' + secret)
     const body = await response.json();
-    console.log(body.data)
-    return body.data;
+    console.log({status: response.status, data: body.data})
+    return {status: response.status, data: body.data};
   },
   getClients: async () => {
     try{
@@ -191,7 +215,7 @@ export const spotifyDataStore = create<spotifyState>()((set) => ({
       })
       const body = await response.json();
       console.log(body.data)
-      return body.data;
+      return {status: response.status, data: body.data};
     } catch (error) {
       
     }
@@ -202,10 +226,19 @@ export const spotifyDataStore = create<spotifyState>()((set) => ({
     })
     const body = await response.json();
     console.log(body.data)
-    return body.data;
+    return {status: response.status, data: body.data};
   },
-  refreshTokens: async (id: string, refreshToken: string) => {
-    const response = await fetch('http://localhost:3001/refresh' + '?id=' + id + '&refresh=' + refreshToken)
+  regenerateSecret: async () => {
+    const response = await fetch(backendURL + '/regenerate', {
+      method: 'POST',
+      credentials: 'include',
+    })
+    const body = await response.json();
+    console.log(body.data)
+    return {status: response.status, data: body.data};
+  },
+  refreshTokens: async (secret: string, refreshToken: string) => {
+    const response = await fetch('http://localhost:3001/refresh' + '?secret=' + secret + '&refresh=' + refreshToken)
     const body = await response.json();
     console.log(body.data)
     return body.data;

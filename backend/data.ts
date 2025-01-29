@@ -101,18 +101,19 @@ export async function regenerateSecret(req: Request, res: Response) {
 
   try {
     // Check if secret is in DB
-    let newSecret = generateSecret()
+    let newSecret: string = await generateSecret()
     console.log('new secret', newSecret)
 
     const result = await sql.query`
       UPDATE Test
       SET App_Secret = ${newSecret} 
-      WHERE id = ${user_id}
+      WHERE id = ${user_id} 
     `;
 
-    let data = result.recordset[0]
-    res.status(200).json({ data: data });
-    return;
+    if (result.rowsAffected[0] === 1) {
+      res.status(200).json({ data: {secret: newSecret} });
+      return;
+    }
   } catch (error) {
     console.log(error);
   }
@@ -124,12 +125,39 @@ export async function handleSpotifyLink(req: Request, res: Response) {
 
   var code = req.query.code || null;
   var URL = 'https://accounts.spotify.com/api/token';
+  const user_id = res.locals.session_data.userID;
+  var client_id: string = '';
+  var client_secret: string = '';
 
-  console.log(process.env.client_id)
   // Need to get client_id and client_secret saved in DB
+  try {
+    const result = await sql.query`
+      SELECT Client_ID, Client_Secret
+      FROM Test 
+      WHERE id = ${user_id}
+    `;
+    if (result.rowsAffected[0] !== 1) {
+      res.status(400).json({message: 'Error. User not found'});
+      return
+    }
+    console.log(result.recordset[0])
+    if (result.recordset[0].Client_ID === null || result.recordset[0].Client_Secret === null) {
+      res.status(400).json({message: 'Client ID and Client Secret must be supplied.'});
+      return
+    }
+
+    client_id = result.recordset[0].Client_ID;
+    client_secret = result.recordset[0].Client_Secret;
+
+  } catch (error) {
+    res.status(400).json({message: 'Error getting Client ID or Secret'});
+    return
+  }
+
+  console.log("ID and secret fetched from db", client_id, client_secret)
   var headers = new Headers({
     'content-type': 'application/x-www-form-urlencoded',
-    'Authorization': 'Basic ' + (Buffer.from( process.env.client_id + ':' + process.env.client_secret).toString('base64'))
+    'Authorization': 'Basic ' + (Buffer.from(client_id + ':' + client_secret).toString('base64'))
   });
 
   var body = new URLSearchParams({
@@ -155,6 +183,7 @@ export async function handleSpotifyLink(req: Request, res: Response) {
     // ! Don't actually need it since Spotify API doesn't really limit how many you can refresh, but in a system where it matters more to be conservatibe with API calls to reduce traffic, this can be implemented to shift more load onto our backend
     let expire_time = moment().add(seconds, 'seconds').utc().toDate();
 
+    const user_id = res.locals.session_data.userID;
     // Save into DB
     const dbAction = await sql.query`
       UPDATE Test
@@ -162,7 +191,7 @@ export async function handleSpotifyLink(req: Request, res: Response) {
         Access_Token = ${access_token},
         Refresh_Token = ${refresh_token},
         Expires_At = ${expire_time} 
-      WHERE id = ${1}
+      WHERE id = ${user_id}
     `;
 
     if (dbAction.rowsAffected[0] === 1){
@@ -177,7 +206,7 @@ export async function handleSpotifyLink(req: Request, res: Response) {
 // region Save Token
 // Save the token into DB
 export async function saveTokens(req: Request, res: Response) {
-
+  console.log("saving token")
   var access = req.query.access_token || null;
   var refresh = req.query.refresh_token || null;
 
@@ -200,13 +229,14 @@ export async function saveTokens(req: Request, res: Response) {
 // Get the token from the DB
 export async function getTokens(req: Request, res: Response) {
 
-  var id = req.query.id || null;
-
+  var secret = req.query.secret || null;
+  console.log('secret:', secret)
   try {
     const result = await sql.query`
       SELECT Access_Token, Refresh_Token FROM Test  
-      WHERE id = ${id}
+      WHERE App_Secret = ${secret}
       `;
+    console.log(result)
     let userTokens = result.recordset[0];
     res.status(200).json({ data: userTokens });
     return
@@ -216,17 +246,19 @@ export async function getTokens(req: Request, res: Response) {
   res.status(500).json({message: 'Error fetching tokens.'});
 }
 // region Refresh Tokens
-// Refresh access token
+// Refresh Spotify API access token
 export async function refreshTokens(req: Request, res: Response) {
   console.log("refreshing token")
-  console.log(process.env.client_id)
-  var id = req.query.id;
+  var secret = req.query.secret;
   var refresh_token = req.query.refresh as string;
+  console.log(secret)
   // Check if refresh is needed?
   try {
     const refreshResponse = await sql.query`
-      SELECT EXPIRES_AT FROM Test WHERE id = ${id}
+      SELECT EXPIRES_AT FROM Test WHERE App_Secret = ${secret}
     `;
+
+    console.log('refreshResponse: ', refreshResponse)
     let expiresAt = refreshResponse.recordset[0].EXPIRES_AT;
     let momentData = moment(expiresAt);
 
@@ -242,10 +274,41 @@ export async function refreshTokens(req: Request, res: Response) {
     return
   }
 
+
+  var client_id: string = '';
+  var client_secret: string = '';
+
+  // Need to get client_id and client_secret saved in DB
+  try {
+    const result = await sql.query`
+      SELECT Client_ID, Client_Secret
+      FROM Test 
+      WHERE App_Secret = ${secret}
+    `;
+    if (result.rowsAffected[0] !== 1) {
+      res.status(400).json({message: 'Error. User not found'});
+      return
+    }
+    console.log(result.recordset[0])
+    if (result.recordset[0].Client_ID === null || result.recordset[0].Client_Secret === null) {
+      res.status(400).json({message: 'Client ID and Client Secret must be supplied.'});
+      return
+    }
+
+    client_id = result.recordset[0].Client_ID;
+    client_secret = result.recordset[0].Client_Secret;
+
+  } catch (error) {
+    res.status(400).json({message: 'Error getting Client ID or Secret'});
+    return
+  }
+
+
+
   var URL = 'https://accounts.spotify.com/api/token';
   var headers = new Headers({
       'content-type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + (Buffer.from(process.env.client_id + ':' + process.env.client_secret).toString('base64'))
+      'Authorization': 'Basic ' + (Buffer.from(client_id + ':' + client_secret).toString('base64'))
   });
   var body = new URLSearchParams({
     'grant_type': 'refresh_token',
@@ -270,7 +333,7 @@ export async function refreshTokens(req: Request, res: Response) {
       SET
         Access_Token = ${access_token}, 
         Expires_At = ${expire_time}
-      WHERE id = ${1}
+      WHERE App_Secret = ${secret}
     `;}
 
     res.status(200).json({data: access_token});

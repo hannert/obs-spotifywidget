@@ -19,7 +19,9 @@ export default function Toolbar() {
     try {
       const res = await logoutAction();
       if (res === 200) {
-        router.push('/')
+        localStorage.removeItem('IsLoggedIn');
+        router.push('/');
+        return
       }
 
 
@@ -36,7 +38,7 @@ export default function Toolbar() {
       {
         (pathname === '/home') && (
           <Tooltip>
-            <TooltipTrigger className="rounded-md inline-flex items-center justify-center px-4 group hover:bg-accent" onClick={() => {router.push('/')}}>
+            <TooltipTrigger className="rounded-md inline-flex items-center justify-center px-4 group hover:bg-accent" onClick={handleLogout}>
               <LogOut className="group-hover:text-accent-foreground" /> 
             </TooltipTrigger>
             <TooltipContent>

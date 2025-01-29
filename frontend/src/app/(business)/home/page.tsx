@@ -1,12 +1,21 @@
 'use client'
 
-import { spotifyDataStore } from '@/app/store';
+import { spotifyDataStore, userDataStore } from '@/app/store';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import 'dotenv/config';
-import { Banana, Pencil, Save } from 'lucide-react';
+import { Banana, Copy, Pencil, RotateCw, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
@@ -21,35 +30,68 @@ export default function Home() {
   const [clientIDChanged, setClientIDChanged] = useState(false);
   const [clientSecretText, setClientSecretText] = useState('');
   const [secretVis, setSecretVis] = useState(false);
+  const [originURL, setOriginURL] = useState('Error');
+  const [secretLinkText, setSecretLinkText] = useState('');
+  const refreshAuthTokenAction = userDataStore((state) => state.refresh)
   const getClientsAction = spotifyDataStore((state) => state.getClients);
   const saveClientIDAction = spotifyDataStore((state) => state.saveClientID)
   const saveClientSecretAction = spotifyDataStore((state) => state.saveClientSecret)
   const getLinkSecretsAction = spotifyDataStore((state) => state.getLinkSecret)
+  const regenerateSecretAction = spotifyDataStore((state) => state.regenerateSecret)
 
   useEffect(() => {
     // First we can check the isLoggedIn localstorage flag
     let isLoggedIn = localStorage.getItem('IsLoggedIn');
     if (isLoggedIn !== 'true') {
 
-    }      
+    }
+
+    setOriginURL(window.location.origin);
+
     // Fetch client id and secret
-      startHelper()
+    startHelper()
   }, [])
 
-  async function startHelper() {
-    const responseCode = await getClientsAction();
-    console.log(responseCode)
-    if (responseCode !== null) {
-      if (responseCode.Client_ID !== null) {
-        setClientIDText(responseCode.Client_ID);
-      }
-      if (responseCode.Client_Secret !== null) {
-        setClientSecretText(responseCode.Client_Secret);
-      }    
+  async function refreshHelper(callback: any) {
+    const refreshResponse = await refreshAuthTokenAction();
+    console.log(refreshResponse)
+    if (refreshResponse.status === 200) {
+      callback();
+    }
+    if (refreshResponse.status === 401) {
+      router.push('/')
     }
   }
 
-  function setText(func: Function, e: any) {
+  async function startHelper() {
+
+
+
+    const clientResponse = await getClientsAction();
+    console.log(clientResponse)
+    if (clientResponse.status === 200) {
+      if (clientResponse.data.Client_ID !== null) {
+        setClientIDText(clientResponse.data.Client_ID);
+      }
+      if (clientResponse.data.Client_Secret !== null) {
+        setClientSecretText(clientResponse.data.Client_Secret);
+      }
+    }
+    if (clientResponse.status === 401) {
+      //refreshHelper()
+    }
+
+    const secretResponse = await getLinkSecretsAction();
+    console.log(secretResponse)
+    if (secretResponse.status === 200) {
+      if (secretResponse.data.App_Secret !== null) {
+        setSecretLinkText(secretResponse.data.App_Secret);
+      }
+    }
+  }
+
+  function toastErrorHelper(message: string) {
+    toast({variant: 'destructive', title: 'Uh oh! Something went wrong.', description: message});
   }
 
   const handleClientID = (e: any) => {
@@ -66,6 +108,8 @@ export default function Home() {
     if (response === 200) {
       setClientIDChanged(false);
       toast({title: 'Client ID ✅', description: 'Successfully saved.'});  
+    } else {
+      toastErrorHelper('There was a problem saving your ID.')
     }
   }
 
@@ -82,7 +126,6 @@ export default function Home() {
       toast({title: 'Client Secret 🔐✅', description: 'Successfully saved.'});
     } else {
       toast({variant: 'destructive', title: 'Uh oh! Something went wrong.', description: 'There was a problem saving your secret.'});
-
     }
   }
 
@@ -94,13 +137,26 @@ export default function Home() {
     setSecretVis(!secretVis);
   }
 
-
-  const client_id = 'f2df842d1adc42c9b173d709cda23909'
-
   const handleKeyDown = (e: any) => {
     if (e.key === 'Enter') {
 
     }
+  }
+
+  const handleRegenerate = async () => {
+    const response = await regenerateSecretAction();
+    console.log(response)
+    if (response.status === 200) {
+      setSecretLinkText(response.data.secret);
+      toast({title: 'User Secret 🔐✅', description: 'Successfully regenerated.'});
+    } else {
+      toast({variant: 'destructive', title: 'Uh oh! Something went wrong.', description: 'There was a problem regenerating your secret.'});
+    }
+  }
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(originURL + '/spotify?secret=' + secretLinkText);
+    toast({title: 'Link copied', description: 'Link successfully copied to clipboard.'});
   }
 
 
@@ -120,12 +176,10 @@ export default function Home() {
                 >
                 </Input>
                 {
-                  (clientIDChanged === true) ?
-                    <Button onClick={handleSaveID}>
-                      <Save />
-                    </Button>
-                    :
-                    <></>           
+                  (clientIDChanged === true) && 
+                  <Button onClick={handleSaveID}>
+                    <Save />
+                  </Button>
                 }
 
               </div>
@@ -150,16 +204,13 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-                  <Button>
-                    Test
-                  </Button>
-
             <a
               className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
               href={'https://accounts.spotify.com/authorize?' +
                 new URLSearchParams({
                   response_type: 'code',
-                  client_id: client_id as string,
+                  client_id: clientIDText as string,
+                  scope: 'user-read-currently-playing',
                   redirect_uri: redirectUri,
                 }).toString()}
               target='_blank'
@@ -169,9 +220,35 @@ export default function Home() {
 
           </div>
 
-          <div>
-            <Button disabled={(clientIDText === '' || clientSecretText === '')}>
-              <Banana /> Get secret link
+          <div className='flex flex-col gap-4'>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button disabled={(clientIDText === '' || clientSecretText === '')}>
+                  <Banana /> Get secret link
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>This is your secret link.</DialogTitle>
+                  <DialogDescription>
+                    Copy and paste this into a browser source on OBS
+                  </DialogDescription>
+                </DialogHeader>
+                <div className='flex justify-between'>
+                  <code className="whitespace-nowrap text-xs ">
+                    {originURL + '/spotify?secret=' + secretLinkText}
+                  </code>
+                  <Button onClick={handleCopyLink}>
+                    <Copy />
+                  </Button>
+                </div>
+              </DialogContent>
+         
+            </Dialog>
+
+            <Separator orientation='horizontal'/>
+            <Button onClick={handleRegenerate}>
+              <RotateCw /> Regenerate secret
             </Button>
           </div>
         </div>

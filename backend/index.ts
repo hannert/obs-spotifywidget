@@ -2,8 +2,8 @@ import cors from 'cors';
 import 'dotenv/config';
 import express, { Express } from 'express';
 import sql from 'mssql';
-import { handleLogin, handleRefresh, handleRegister, queryUsername } from './auth';
-import { getClient, getLinkSecret, getTokens, handleSpotifyLink, refreshTokens, saveClientId, saveClientSecret, saveTokens } from './data';
+import { handleLogin, handleLogout, handleRefresh, handleRegister, queryUsername } from './auth';
+import { getClient, getLinkSecret, getTokens, handleSpotifyLink, refreshTokens, regenerateSecret, saveClientId, saveClientSecret, saveTokens } from './data';
 import { jwtMiddleware } from './jwtMiddleware';
 
 
@@ -59,7 +59,7 @@ async function connectToDb() {
 app.get('/client', getClient);
 app.post('/client/id', saveClientId);
 app.post('/client/secret', saveClientSecret);
-
+app.post('/regenerate', regenerateSecret);
 
 app.get('/secret', getLinkSecret)
 // TODO Have a front end link that calls this route and gives feedback
@@ -73,7 +73,8 @@ app.get('/refresh', refreshTokens);
 app.post('/auth/login', handleLogin);
 app.post('/auth/register', handleRegister);
 app.post('/auth/query/username', queryUsername);
-app.post('/auth/refresh', handleRefresh);
+app.post('/auth/logout', handleLogout);
+app.get('/auth/refresh', handleRefresh);
 
 app.listen(process.env.port, () => {
   console.log('Listening', process.env.port);

@@ -2,9 +2,9 @@
 import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
 import { Request, Response } from 'express';
+import { JwtPayload, TokenExpiredError } from 'jsonwebtoken';
 import moment from 'moment';
 import sql from 'mssql';
-import { JwtPayload } from 'jsonwebtoken';
 
 var jwt = require('jsonwebtoken');
 
@@ -206,9 +206,42 @@ export async function handleLogin(req: Request, res: Response) {
   }
 }
 
-// region Refresh
+export async function handleLogout(req: Request, res: Response) {
+  const user_id = res.locals.session_data.userID;
+
+  try {
+    const result = await sql.query`
+      UPDATE Users 
+      SET HashedRefreshToken = NULL 
+      WHERE UserID = ${user_id}
+    `;
+
+    res.clearCookie('spotify_accessToken');
+    res.clearCookie('spotify_refreshToken');
+
+    res.status(200).json({message: 'Logged out successfully'})
+    return
+
+  } catch (error) {
+    console.log(error);
+    if (error instanceof Error) {
+      res.status(500)
+      return
+    }
+  }
+  res.status(500)
+}
+
+
+// region Access token refresh
 export async function handleRefresh(req: Request, res: Response) {
-  const refreshToken = req.cookies['spotify_refresh_token']
+  console.log('Handle Refresh in backend')
+  const refreshToken = req.cookies.spotify_refreshToken;
+
+  if (refreshToken === undefined || refreshToken === null) {
+
+  }
+
   console.log(refreshToken)
   try {
     // Verify that the refresh token is still valid
@@ -226,7 +259,7 @@ export async function handleRefresh(req: Request, res: Response) {
 
       let accessToken = jwt.sign({username: username, userID: userID}, process.env.JWT_SECRET as string, { expiresIn: '1h' })
 
-      res.cookie('todo_accessToken', accessToken, {
+      res.cookie('spotify_accessToken', accessToken, {
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
@@ -235,6 +268,15 @@ export async function handleRefresh(req: Request, res: Response) {
       return
     }
   } catch (error) {
+    // Refresh token is expired, clear cookies
+    if (error === TokenExpiredError) {
+      res.clearCookie('spotify_accessToken');
+      res.clearCookie('spotify_refreshToken');
+      res.status(401).json({ message: 'Refresh token expired.' });
+      return
+    }
+
+
     res.status(400).json({ message: 'Error verifying token.'});
     return
   }

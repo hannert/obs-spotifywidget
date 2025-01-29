@@ -22,13 +22,13 @@ export default function Spotify() {
   const setSong = songDataStore((state) => state.setSong);
 
   const searchParams = useSearchParams();
-  const id = searchParams.get('id')
+  const secret = searchParams.get('secret')
   // const dev = searchParams.get('dev')
 
   useEffect(() => {
     // Set tokens in app when loading in
     try {
-      if (id !== null) {
+      if (secret !== null) {
         startHelper();
       }
       
@@ -38,13 +38,14 @@ export default function Spotify() {
   }, [])
 
   const startHelper = async () => {
-    if (id !== null){
-      const tokens =  await getTokensAction(id);
-      if (tokens !== null){
-        access_token = tokens.Access_Token;
-        refresh_token = tokens.Refresh_Token;
+    if (secret !== null){
+      const tokensResponse =  await getTokensAction(secret);
+      if (tokensResponse.status === 200){
+        access_token = tokensResponse.data.Access_Token;
+        refresh_token = tokensResponse.data.Refresh_Token;
         // Start interval for data retrieval
-        setRepeat();
+        testGetSong()
+        //setRepeat();
       }
      
     }
@@ -54,8 +55,8 @@ export default function Spotify() {
   async function testRefresh() {
     //clearInterval(songFetchLoop);
     console.log('test refresh token:', refresh_token)
-    if(id !== null && refresh_token !== null){
-      const test = await refreshTokensAction(id, refresh_token);
+    if(secret !== null && refresh_token !== null){
+      const test = await refreshTokensAction(secret, refresh_token);
       console.log('test', test);    
       access_token = test
       // let tempToken = setAccessToken(test);
@@ -64,7 +65,7 @@ export default function Spotify() {
 
   }
   function setRepeat() {
-    songFetchLoop = setInterval(testGetSong, 1000)
+    //songFetchLoop = setInterval(testGetSong, 1000)
   }
 
   async function testGetSong() {
@@ -78,7 +79,7 @@ export default function Spotify() {
       // Stop fetching song data
       clearInterval(songFetchLoop);
       // Refresh token
-      if (id !== null){
+      if (secret !== null){
         console.log("REFRESHING ------------------")
         testRefresh();
         return;
@@ -110,7 +111,7 @@ export default function Spotify() {
           </div>
           <div className="w-32">
             {Math.floor((currentSong?.progress_ms / 1000) / 60) + ':' + Math.trunc((currentSong?.progress_ms / 1000) % 60).toString().padStart(2, '0')}/ 
-            {Math.floor((currentSong?.item?.duration_ms / 1000) / 60) + ':' + Math.trunc((currentSong?.item?.duration_ms / 1000) % 60).toString()}
+            {Math.floor((currentSong?.item?.duration_ms / 1000) / 60) + ':' + Math.trunc((currentSong?.item?.duration_ms / 1000) % 60).toString().padStart(2, '0')}
           </div>
         </div>
         {/* <button onClick={() => clearInterval(songFetchLoop)}>
