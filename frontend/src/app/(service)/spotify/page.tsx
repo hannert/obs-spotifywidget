@@ -44,8 +44,8 @@ export default function Spotify() {
         access_token = tokensResponse.data.Access_Token;
         refresh_token = tokensResponse.data.Refresh_Token;
         // Start interval for data retrieval
-        testGetSong()
-        //setRepeat();
+        //testGetSong()
+        setRepeat();
       }
      
     }
@@ -65,7 +65,7 @@ export default function Spotify() {
 
   }
   function setRepeat() {
-    //songFetchLoop = setInterval(testGetSong, 1000)
+    songFetchLoop = setInterval(testGetSong, 1000)
   }
 
   async function testGetSong() {

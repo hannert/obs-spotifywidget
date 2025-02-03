@@ -14,7 +14,7 @@ interface credentials {
   checkUsername: (username: string) => Object,
   checkEmail: (email: string) => Object,
   setUsername: (username: string) => void,
-  refresh: () => Promise<any>
+  refresh: () => Promise<number>
 }
 
 export const userDataStore = create<credentials>((set) => ({
@@ -120,78 +120,29 @@ export const userDataStore = create<credentials>((set) => ({
     try {
       const response = await fetch(backendURL + '/auth/refresh', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email
-        })
+        credentials: 'include',
+
       })
-      const returnJSON = await response.json
-      return returnJSON
+      return response.status
     } catch (error) {
       console.log(error)
     }
-    return {}
+    return 400
   }
 }))
 
 interface spotifyState {
   accessToken: string,
   refreshToken: string,
-  clientID: string,
-  clientSecret: string,
-  linkSecret: string,
-  saveClientID: (newId: string) => Promise<number>,
-  saveClientSecret: (newSecret: string) => Promise<number>,
   setAccess: (newToken: string) => string,
   setRefresh: (newToken: string) => Promise<string>,
   getTokens: (id: string) => any,
-  getClients: () => any,
-  getLinkSecret: () => any,
-  regenerateSecret: () => any,
-  refreshTokens: (id: string, refreshToken: string) => any,
-
+  refreshTokens: (secret: string, refreshToken: string) => any
 }
 
 export const spotifyDataStore = create<spotifyState>()((set) => ({
   accessToken: '',
   refreshToken: '',
-  clientID: '',
-  clientSecret: '',
-  linkSecret: '',
-  saveClientID: async (newId: string) => {
-    try {
-      const response = await fetch(backendURL + '/client/id', {
-        method: 'POST',
-        headers: new Headers({
-          'Content-Type': 'application/json'
-        }),
-        credentials: 'include',
-        body: JSON.stringify({
-          client_id: newId
-        })
-      })
-      return response.status;
-    } catch (error) {
-
-    }
-
-    return 400
-  },
-  saveClientSecret: async (newSecret: string) => {
-    const response = await fetch(backendURL + '/client/secret', {
-      method: 'POST',
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      }),
-      credentials: 'include',
-      body: JSON.stringify({
-        client_secret: newSecret
-      })
-    })
-    return response.status;
-  },
   setAccess: (newToken: string) => {
     console.log('new access token:', newToken);
     set(() => ({accessToken: newToken}));
@@ -208,42 +159,12 @@ export const spotifyDataStore = create<spotifyState>()((set) => ({
     console.log({status: response.status, data: body.data})
     return {status: response.status, data: body.data};
   },
-  getClients: async () => {
-    try{
-      const response = await fetch(backendURL + '/client', {
-        credentials: 'include',
-      })
-      const body = await response.json();
-      console.log(body.data)
-      return {status: response.status, data: body.data};
-    } catch (error) {
-      
-    }
-  },
-  getLinkSecret: async () => {
-    const response = await fetch(backendURL + '/secret', {
-      credentials: 'include',
-    })
-    const body = await response.json();
-    console.log(body.data)
-    return {status: response.status, data: body.data};
-  },
-  regenerateSecret: async () => {
-    const response = await fetch(backendURL + '/regenerate', {
-      method: 'POST',
-      credentials: 'include',
-    })
-    const body = await response.json();
-    console.log(body.data)
-    return {status: response.status, data: body.data};
-  },
   refreshTokens: async (secret: string, refreshToken: string) => {
     const response = await fetch('http://localhost:3001/refresh' + '?secret=' + secret + '&refresh=' + refreshToken)
     const body = await response.json();
     console.log(body.data)
     return body.data;
   }
-
 }));
 
 

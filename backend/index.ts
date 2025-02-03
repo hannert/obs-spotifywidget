@@ -74,7 +74,7 @@ app.post('/auth/login', handleLogin);
 app.post('/auth/register', handleRegister);
 app.post('/auth/query/username', queryUsername);
 app.post('/auth/logout', handleLogout);
-app.get('/auth/refresh', handleRefresh);
+app.post('/auth/refresh', handleRefresh);
 
 app.listen(process.env.port, () => {
   console.log('Listening', process.env.port);

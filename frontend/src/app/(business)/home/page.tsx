@@ -1,6 +1,7 @@
 'use client'
 
-import { spotifyDataStore, userDataStore } from '@/app/store';
+import { userDataStore } from '@/app/store';
+import { protectedDataStore } from '@/app/store/auth-store';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,18 +27,28 @@ export default function Home() {
   const clientIDRef = React.useRef(null)
   const redirectUri = 'http://localhost:3001/callback';
   const authUrl = new URL("https://accounts.spotify.com/authorize?");
-  const [clientIDText, setClientIDText] = useState('');
+
+
+
+  const clientID = protectedDataStore((state) => state.clientID)
+  const setClientIDAction = protectedDataStore((state) => state.setClientID)
+  const clientSecret = protectedDataStore((state) => state.clientSecret)
+  const setClientSecretAction = protectedDataStore((state) => state.setClientSecret)
+  const refreshAuthTokenAction = userDataStore((state) => state.refresh)
+
+
+
   const [clientIDChanged, setClientIDChanged] = useState(false);
-  const [clientSecretText, setClientSecretText] = useState('');
   const [secretVis, setSecretVis] = useState(false);
   const [originURL, setOriginURL] = useState('Error');
-  const [secretLinkText, setSecretLinkText] = useState('');
-  const refreshAuthTokenAction = userDataStore((state) => state.refresh)
-  const getClientsAction = spotifyDataStore((state) => state.getClients);
-  const saveClientIDAction = spotifyDataStore((state) => state.saveClientID)
-  const saveClientSecretAction = spotifyDataStore((state) => state.saveClientSecret)
-  const getLinkSecretsAction = spotifyDataStore((state) => state.getLinkSecret)
-  const regenerateSecretAction = spotifyDataStore((state) => state.regenerateSecret)
+ // const [secretLinkText, setSecretLinkText] = useState('');
+  const linkSecret = protectedDataStore((state) => state.linkSecret);
+
+  const getClientsAction = protectedDataStore((state) => state.getClients);
+  const saveClientIDAction = protectedDataStore((state) => state.saveClientID)
+  const saveClientSecretAction = protectedDataStore((state) => state.saveClientSecret)
+  const getLinkSecretsAction = protectedDataStore((state) => state.getLinkSecret)
+  const regenerateSecretAction = protectedDataStore((state) => state.regenerateSecret)
 
   useEffect(() => {
     // First we can check the isLoggedIn localstorage flag
@@ -52,42 +63,37 @@ export default function Home() {
     startHelper()
   }, [])
 
-  async function refreshHelper(callback: any) {
-    const refreshResponse = await refreshAuthTokenAction();
-    console.log(refreshResponse)
-    if (refreshResponse.status === 200) {
-      callback();
+  async function protectedWrapper(fn: any) {
+    // Try the original function first
+    const firstTryResponse = await fn();
+    // Unauthorized / Token has expired
+    //console.log('first try', firstTryResponse.status)
+    if (firstTryResponse.status === 200) {
+      toast({title: 'Success!', description: firstTryResponse.message});  
     }
-    if (refreshResponse.status === 401) {
-      router.push('/')
+
+    if (firstTryResponse.status === 401) {
+      // Try to refresh
+      //console.log('Trying to refresh')
+      const refreshResponse = await refreshAuthTokenAction()
+
+      const secondTryResponse = await fn();
+
+      //console.log('second', secondTryResponse)
+      if (secondTryResponse.status === 200) {
+        toast({title: 'Success!', description: secondTryResponse.message});
+      }
+
+      if (secondTryResponse.status === 401) {
+        toastErrorHelper('Unauthorized.')
+        router.push('/')
+      }
     }
   }
 
   async function startHelper() {
-
-
-
-    const clientResponse = await getClientsAction();
-    console.log(clientResponse)
-    if (clientResponse.status === 200) {
-      if (clientResponse.data.Client_ID !== null) {
-        setClientIDText(clientResponse.data.Client_ID);
-      }
-      if (clientResponse.data.Client_Secret !== null) {
-        setClientSecretText(clientResponse.data.Client_Secret);
-      }
-    }
-    if (clientResponse.status === 401) {
-      //refreshHelper()
-    }
-
-    const secretResponse = await getLinkSecretsAction();
-    console.log(secretResponse)
-    if (secretResponse.status === 200) {
-      if (secretResponse.data.App_Secret !== null) {
-        setSecretLinkText(secretResponse.data.App_Secret);
-      }
-    }
+    await protectedWrapper(getClientsAction);
+    await protectedWrapper(getLinkSecretsAction);
   }
 
   function toastErrorHelper(message: string) {
@@ -98,42 +104,37 @@ export default function Home() {
     e.preventDefault();
     let newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
-      setClientIDText(newText);
       setClientIDChanged(true);
+      setClientIDAction(newText)
     }
   }
 
   const handleSaveID = async () => {
-    const response = await saveClientIDAction(clientIDText);
-    if (response === 200) {
+    const response = await saveClientIDAction(clientID);
+    if (response.status === 200) {
       setClientIDChanged(false);
-      toast({title: 'Client ID ✅', description: 'Successfully saved.'});  
-    } else {
-      toastErrorHelper('There was a problem saving your ID.')
     }
+    return response
   }
 
   const handleClientSecret = (e: any) => {
     let newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
-      setClientSecretText(newText);
+      setClientSecretAction(newText);
     }
   }
   const handleSaveSecret = async () => {
-    const response = await saveClientSecretAction(clientIDText);
+    const response = await saveClientSecretAction(clientSecret);
     if (response === 200) {
       toggleSecretVis(null);
-      toast({title: 'Client Secret 🔐✅', description: 'Successfully saved.'});
-    } else {
-      toast({variant: 'destructive', title: 'Uh oh! Something went wrong.', description: 'There was a problem saving your secret.'});
     }
+    return response
   }
 
   const toggleSecretVis = (e: any) => {
     if (e === Event) {
       e.preventDefault();
     }
-    
     setSecretVis(!secretVis);
   }
 
@@ -145,17 +146,17 @@ export default function Home() {
 
   const handleRegenerate = async () => {
     const response = await regenerateSecretAction();
-    console.log(response)
     if (response.status === 200) {
-      setSecretLinkText(response.data.secret);
+      //setSecretLinkText(response.data.secret);
       toast({title: 'User Secret 🔐✅', description: 'Successfully regenerated.'});
     } else {
       toast({variant: 'destructive', title: 'Uh oh! Something went wrong.', description: 'There was a problem regenerating your secret.'});
     }
+    return response
   }
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(originURL + '/spotify?secret=' + secretLinkText);
+    navigator.clipboard.writeText(originURL + '/spotify?secret=' + linkSecret);
     toast({title: 'Link copied', description: 'Link successfully copied to clipboard.'});
   }
 
@@ -170,14 +171,14 @@ export default function Home() {
               <div className="flex w-full items-center space-x-2">
                 <Input 
                   onKeyDown={handleKeyDown} 
-                  value={clientIDText}
+                  value={clientID}
                   onChange={handleClientID}
                   ref={clientIDRef}
                 >
                 </Input>
                 {
                   (clientIDChanged === true) && 
-                  <Button onClick={handleSaveID}>
+                  <Button onClick={() => {protectedWrapper(handleSaveID)}}>
                     <Save />
                   </Button>
                 }
@@ -188,14 +189,14 @@ export default function Home() {
               <div className="flex w-full items-center space-x-2">
                 <Input
                   onKeyDown={handleKeyDown} 
-                  value={clientSecretText}
+                  value={clientSecret}
                   onChange={handleClientSecret}
                   disabled={!secretVis}
                   type={!secretVis ? 'password' : ''}
                 >
                 </Input>
                 
-                <Button onClick={secretVis ? handleSaveSecret : toggleSecretVis}>
+                <Button onClick={secretVis ? () => {protectedWrapper(handleSaveSecret)} : toggleSecretVis}>
                   {secretVis ? 
                     <Save />
                     :
@@ -209,7 +210,7 @@ export default function Home() {
               href={'https://accounts.spotify.com/authorize?' +
                 new URLSearchParams({
                   response_type: 'code',
-                  client_id: clientIDText as string,
+                  client_id: clientID as string,
                   scope: 'user-read-currently-playing',
                   redirect_uri: redirectUri,
                 }).toString()}
@@ -223,7 +224,7 @@ export default function Home() {
           <div className='flex flex-col gap-4'>
             <Dialog>
               <DialogTrigger asChild>
-                <Button disabled={(clientIDText === '' || clientSecretText === '')}>
+                <Button disabled={(clientID === '' || clientSecret === '')}>
                   <Banana /> Get secret link
                 </Button>
               </DialogTrigger>
@@ -236,7 +237,7 @@ export default function Home() {
                 </DialogHeader>
                 <div className='flex justify-between'>
                   <code className="whitespace-nowrap text-xs ">
-                    {originURL + '/spotify?secret=' + secretLinkText}
+                    {originURL + '/spotify?secret=' + linkSecret}
                   </code>
                   <Button onClick={handleCopyLink}>
                     <Copy />
@@ -247,7 +248,7 @@ export default function Home() {
             </Dialog>
 
             <Separator orientation='horizontal'/>
-            <Button onClick={handleRegenerate}>
+            <Button onClick={() => protectedWrapper(regenerateSecretAction)}>
               <RotateCw /> Regenerate secret
             </Button>
           </div>

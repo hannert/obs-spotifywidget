@@ -1,6 +1,6 @@
 
 import { Request, Response } from 'express';
-import jwt, { TokenExpiredError } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 
 export const jwtMiddleware = async function (req: Request, res: Response, next) {
@@ -29,10 +29,11 @@ export const jwtMiddleware = async function (req: Request, res: Response, next) 
       res.locals.session_data = verSession;
       next();
     } catch (error) {
-      if (error instanceof TokenExpiredError) {
-        // Access Token Expired: Now check refresh token
-        return
-      }
+      // if (error instanceof TokenExpiredError) {
+      //   //res.redirect('/auth/refresh')
+      //   // Access Token Expired: Now check refresh token
+      //   return
+      // }
       res.status(401).json({message: 'Unauthorized/Invalid token.'})
       return
     }

@@ -323,7 +323,7 @@ export async function refreshTokens(req: Request, res: Response) {
     });
 
     var data = await response.json();
-
+    console.log('data', data)
     // Save into DB
     let expire_time = moment().add(data.expires_in, 'seconds').utc().toDate();
     let access_token = data.access_token;
@@ -335,7 +335,7 @@ export async function refreshTokens(req: Request, res: Response) {
         Expires_At = ${expire_time}
       WHERE App_Secret = ${secret}
     `;}
-
+      console.log('Success, access token:', access_token)
     res.status(200).json({data: access_token});
     return
   } catch (error) {
