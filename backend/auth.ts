@@ -57,13 +57,23 @@ export async function handleRegister(req: Request, res: Response) {
     console.log('Account', username, 'created on', dateCreated)
 
     try {
-      const result = await sql.query`
+      const userResult = await sql.query`
         INSERT INTO Users 
         (Username, HashedPassword, PasswordSalt, Email, DateCreated)
+        OUTPUT INSERTED.UserID 
         VALUES (${username}, ${hashedPW}, ${newSalt}, ${email}, ${dateCreated})`;
 
-      console.log("Successfully inserted a new user into the database!")
+      const userID = userResult.recordset[0].UserID;
+      
+      // Create a row in the data table
+      const dataResult = await sql.query`
+        INSERT INTO Test 
+        (id)
+        VALUES (${userID})
+      `
 
+      console.log("Successfully inserted a new user into the database!")
+      res.status(200).json({message: 'Successfully registered a new user into the database!'})
       // TODO v Log the user in here and make a JWT token to create a session for them v
 
     } catch (error) {
@@ -206,6 +216,7 @@ export async function handleLogin(req: Request, res: Response) {
   }
 }
 
+// region Logout
 export async function handleLogout(req: Request, res: Response) {
   const user_id = res.locals.session_data.userID;
 
@@ -219,7 +230,7 @@ export async function handleLogout(req: Request, res: Response) {
     res.clearCookie('spotify_accessToken');
     res.clearCookie('spotify_refreshToken');
 
-    res.status(200).json({message: 'Logged out successfully'})
+    res.status(200).json({message: 'Logged out successfully.'})
     return
 
   } catch (error) {
@@ -232,6 +243,34 @@ export async function handleLogout(req: Request, res: Response) {
   res.status(500)
 }
 
+export async function handleDelete(req: Request, res: Response) {
+  const user_id = res.locals.session_data.userID;
+  try {
+    const result = await sql.query`
+      DELETE FROM Test 
+      WHERE id = ${user_id}
+    `;
+
+    const userResult = await sql.query`
+      DELETE FROM Users 
+      WHERE UserID = ${user_id}
+    `;
+
+    res.clearCookie('spotify_accessToken');
+    res.clearCookie('spotify_refreshToken');
+
+    res.status(200).json({message: 'User deleted successfully.'})
+    return
+
+  } catch (error) {
+    console.log(error);
+    if (error instanceof Error) {
+      res.status(500)
+      return
+    }
+  }
+  res.status(500)
+}
 
 // region Access token refresh
 export async function handleRefresh(req: Request, res: Response) {
@@ -242,7 +281,7 @@ export async function handleRefresh(req: Request, res: Response) {
 
   }
 
-  console.log(refreshToken)
+  console.log('refresh:', refreshToken)
   try {
     // Verify that the refresh token is still valid
     let decodedToken = jwt.verify(refreshToken as string, process.env.JWT_SECRET as string) as JwtPayload
@@ -254,10 +293,11 @@ export async function handleRefresh(req: Request, res: Response) {
       (result.rowsAffected[0] === 1) && 
       (await argon2.verify(result.recordset[0].HashedRefreshToken, refreshToken as string) === true
     )) {
+      console.log('Hashed refresh token matches')
       let userID = result.recordset[0].UserID;
       let username = result.recordset[0].Username;
 
-      let accessToken = jwt.sign({username: username, userID: userID}, process.env.JWT_SECRET as string, { expiresIn: '1h' })
+      let accessToken = jwt.sign({username: username, userID: userID}, process.env.JWT_SECRET as string, { expiresIn: '2s' })
 
       res.cookie('spotify_accessToken', accessToken, {
         httpOnly: true,

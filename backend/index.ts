@@ -2,7 +2,7 @@ import cors from 'cors';
 import 'dotenv/config';
 import express, { Express } from 'express';
 import sql from 'mssql';
-import { handleLogin, handleLogout, handleRefresh, handleRegister, queryUsername } from './auth';
+import { handleDelete, handleLogin, handleLogout, handleRefresh, handleRegister, queryUsername } from './auth';
 import { getClient, getLinkSecret, getTokens, handleSpotifyLink, refreshTokens, regenerateSecret, saveClientId, saveClientSecret, saveTokens } from './data';
 import { jwtMiddleware } from './jwtMiddleware';
 
@@ -74,6 +74,7 @@ app.post('/auth/login', handleLogin);
 app.post('/auth/register', handleRegister);
 app.post('/auth/query/username', queryUsername);
 app.post('/auth/logout', handleLogout);
+app.post('/auth/delete', handleDelete);
 app.post('/auth/refresh', handleRefresh);
 
 app.listen(process.env.port, () => {
