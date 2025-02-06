@@ -28,8 +28,7 @@ export default function Home() {
   const redirectUri = 'http://localhost:3001/callback';
   const authUrl = new URL("https://accounts.spotify.com/authorize?");
 
-
-
+  // region Protected
   const clientID = protectedDataStore((state) => state.clientID)
   const setClientIDAction = protectedDataStore((state) => state.setClientID)
   const clientSecret = protectedDataStore((state) => state.clientSecret)
@@ -37,13 +36,13 @@ export default function Home() {
   const refreshAuthTokenAction = userDataStore((state) => state.refresh)
 
 
-
+  // Trigger save button to show when the client ID is changed
   const [clientIDChanged, setClientIDChanged] = useState(false);
   const [secretVis, setSecretVis] = useState(false);
   const [originURL, setOriginURL] = useState('Error');
- // const [secretLinkText, setSecretLinkText] = useState('');
   const linkSecret = protectedDataStore((state) => state.linkSecret);
 
+  // region Store Actions
   const getClientsAction = protectedDataStore((state) => state.getClients);
   const saveClientIDAction = protectedDataStore((state) => state.saveClientID)
   const saveClientSecretAction = protectedDataStore((state) => state.saveClientSecret)
@@ -63,15 +62,21 @@ export default function Home() {
     startHelper()
   }, [])
 
+  // region Protected Resources
+  /**
+   * A wrapper function that calls the supplied function and tries again if 401 code is returned after attempted refresh of tokens. Pushes to home page if all attempts fail.
+   * @param fn 
+   */
   async function protectedWrapper(fn: any) {
     // Try the original function first
     const firstTryResponse = await fn();
-    // Unauthorized / Token has expired
     //console.log('first try', firstTryResponse.status)
+
     if (firstTryResponse.status === 200) {
       toast({title: 'Success!', description: firstTryResponse.message});  
     }
 
+    // Unauthorized / Token has expired
     if (firstTryResponse.status === 401) {
       // Try to refresh
       //console.log('Trying to refresh')
@@ -91,24 +96,18 @@ export default function Home() {
     }
   }
 
+  // Helper function to call async functions within page load useEffect
   async function startHelper() {
     await protectedWrapper(getClientsAction);
     await protectedWrapper(getLinkSecretsAction);
   }
 
+  // Shows an error popup with the supplied message
   function toastErrorHelper(message: string) {
     toast({variant: 'destructive', title: 'Uh oh! Something went wrong.', description: message});
   }
 
-  const handleClientID = (e: any) => {
-    e.preventDefault();
-    let newText = (e.target as HTMLInputElement).value;
-    if (newText !== null){
-      setClientIDChanged(true);
-      setClientIDAction(newText)
-    }
-  }
-
+  // Save Client ID
   const handleSaveID = async () => {
     const response = await saveClientIDAction(clientID);
     if (response.status === 200) {
@@ -117,33 +116,16 @@ export default function Home() {
     return response
   }
 
-  const handleClientSecret = (e: any) => {
-    let newText = (e.target as HTMLInputElement).value;
-    if (newText !== null){
-      setClientSecretAction(newText);
-    }
-  }
+  // Save Client Secret
   const handleSaveSecret = async () => {
     const response = await saveClientSecretAction(clientSecret);
-    if (response === 200) {
+    if (response.status === 200) {
       toggleSecretVis(null);
     }
     return response
   }
-
-  const toggleSecretVis = (e: any) => {
-    if (e === Event) {
-      e.preventDefault();
-    }
-    setSecretVis(!secretVis);
-  }
-
-  const handleKeyDown = (e: any) => {
-    if (e.key === 'Enter') {
-
-    }
-  }
-
+  
+  // Regenerate the account's secret (Link to spotify player)
   const handleRegenerate = async () => {
     const response = await regenerateSecretAction();
     if (response.status === 200) {
@@ -154,6 +136,43 @@ export default function Home() {
     }
     return response
   }
+
+  // region Controlled Input Handler
+  // handle client id text input
+  const handleClientID = (e: any) => {
+    e.preventDefault();
+    let newText = (e.target as HTMLInputElement).value;
+    if (newText !== null){
+      setClientIDChanged(true);
+      setClientIDAction(newText)
+    }
+  }
+
+  // Toggle secret visibility and editing
+  const toggleSecretVis = (e: any) => {
+    if (e === Event) {
+      e.preventDefault();
+    }
+    setSecretVis(!secretVis);
+  }
+
+  // Handle client secret text input 
+  const handleClientSecret = (e: any) => {
+    let newText = (e.target as HTMLInputElement).value;
+    if (newText !== null){
+      setClientSecretAction(newText);
+    }
+  }
+  
+
+  // TODO: Allow keyboard input to save resources
+  const handleKeyDown = (e: any) => {
+    if (e.key === 'Enter') {
+
+    }
+  }
+
+
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(originURL + '/spotify?secret=' + linkSecret);
@@ -248,7 +267,7 @@ export default function Home() {
             </Dialog>
 
             <Separator orientation='horizontal'/>
-            <Button onClick={() => protectedWrapper(regenerateSecretAction)}>
+            <Button onClick={() => protectedWrapper(handleRegenerate)}>
               <RotateCw /> Regenerate secret
             </Button>
           </div>

@@ -2,7 +2,7 @@ import { create } from "zustand";
 let backendURL = 'http://localhost:3001'
 
 
-type storeResponse = {
+export type storeResponse = {
   status: number,
   message: string
 }

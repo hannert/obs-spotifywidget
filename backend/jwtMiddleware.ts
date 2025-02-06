@@ -7,7 +7,7 @@ export const jwtMiddleware = async function (req: Request, res: Response, next) 
   // These paths will be non secure paths, users do not have to be logged in to access
   let nonSecureFlag = false
   const nonSecurePaths = ['/', '/about', 'contact', '/auth/login', '/auth/refresh', '/refresh', '/auth/register', '/auth/query/username', '/query/email', '/spotify', '/token']
-  console.log(req.path)
+  console.log('Path requested:', req.path)
   for (let i = 0; i < nonSecurePaths.length; i++){
     if (req.path === nonSecurePaths[i]) {
       nonSecureFlag = true
@@ -20,7 +20,7 @@ export const jwtMiddleware = async function (req: Request, res: Response, next) 
     // Verify the JWT token
     try {
       let token = req.cookies.spotify_accessToken as string
-      console.log(token)
+      //console.log(token)
       //console.log('Verifying JWT Token:', token)
 
       let verSession = jwt.verify(token, process.env.JWT_SECRET as string)
@@ -38,7 +38,7 @@ export const jwtMiddleware = async function (req: Request, res: Response, next) 
       return
     }
   } else {
-    console.log('-Non Secure path-', req.originalUrl)
+    // console.log('-Non Secure path-', req.originalUrl)
     next()
   }
 }

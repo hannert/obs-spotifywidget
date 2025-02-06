@@ -18,12 +18,9 @@ export default function Toolbar() {
   const handleLogout = async () => {
     try {
       const res = await logoutAction();
-      if (res === 200) {
-        localStorage.removeItem('IsLoggedIn');
-        router.push('/');
-        return
-      }
-
+      localStorage.removeItem('IsLoggedIn');
+      router.push('/');
+      return
 
     } catch (error) {
       console.log(error);
