@@ -121,6 +121,7 @@ export async function regenerateSecret(req: Request, res: Response) {
 }
 
 // region Link Applications
+/** Handles authorization of spotify app to our application */
 export async function handleSpotifyLink(req: Request, res: Response) {
 
   var code = req.query.code || null;
@@ -140,7 +141,7 @@ export async function handleSpotifyLink(req: Request, res: Response) {
       res.status(400).json({message: 'Error. User not found'});
       return
     }
-    console.log(result.recordset[0])
+    //console.log(result.recordset[0])
     if (result.recordset[0].Client_ID === null || result.recordset[0].Client_Secret === null) {
       res.status(400).json({message: 'Client ID and Client Secret must be supplied.'});
       return
@@ -154,7 +155,7 @@ export async function handleSpotifyLink(req: Request, res: Response) {
     return
   }
 
-  console.log("ID and secret fetched from db", client_id, client_secret)
+  //console.log("ID and secret fetched from db", client_id, client_secret)
   var headers = new Headers({
     'content-type': 'application/x-www-form-urlencoded',
     'Authorization': 'Basic ' + (Buffer.from(client_id + ':' + client_secret).toString('base64'))
@@ -173,6 +174,11 @@ export async function handleSpotifyLink(req: Request, res: Response) {
       headers: headers,
       body: body
     });
+
+    if (tokenResponse.status !== 200) {
+      res.status(tokenResponse.status).json({message: 'Error Linking.'});
+      return
+    }
 
     const codeBody = await tokenResponse.json();
 
