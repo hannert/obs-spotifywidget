@@ -14,15 +14,15 @@ import { dbConfig } from '.';
  */
 
 var jwt = require('jsonwebtoken');
-console.log(process.env.DB_USERS)
+console.log(process.env.DB_USERS_TABLE)
 // region Query 
 /** Queries database for supplied username and returns a bool: isUsernameAvailable */
 export async function queryUsername (req: Request, res: Response) {
   const { username } = req.body
   try {
-    // const result = await sql.query`SELECT Username FROM ${process.env.DB_USERS} 
+    // const result = await sql.query`SELECT Username FROM ${process.env.DB_USERS_TABLE} 
     // WHERE Username = ${username}`;  
-    const queryString = "SELECT Username FROM " + process.env.DB_USERS + " WHERE Username = @username";
+    const queryString = "SELECT Username FROM " + process.env.DB_USERS_TABLE + " WHERE Username = @username";
 
     const pool = await sql.connect(dbConfig);
     const result = await pool.request().input('username', sql.VarChar, username).query(queryString)

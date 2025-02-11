@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 import { Request, Response } from "express";
 import moment from "moment";
 import sql from "mssql";
+import { base_url } from '.';
 
 // region
 export async function saveClientId(req: Request, res: Response) {
@@ -163,7 +164,7 @@ export async function handleSpotifyLink(req: Request, res: Response) {
 
   var body = new URLSearchParams({
     'code': code as string,
-    'redirect_uri': process.env.redirect_uri as string,
+    'redirect_uri': base_url + '/callback' as string,
     'grant_type': 'authorization_code'
   });
 

@@ -9,7 +9,7 @@ import { jwtMiddleware } from './jwtMiddleware';
 
 console.log(process.env.DB_USER)
 
-const base_url = process.env.BASE_URL
+export const base_url = process.env.BASE_URL;
 
 const app: Express = express();
 const cookieParser = require('cookie-parser');
