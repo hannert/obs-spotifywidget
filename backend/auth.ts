@@ -1,23 +1,38 @@
 
 import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
+import 'dotenv/config';
 import { Request, Response } from 'express';
 import { JwtPayload, TokenExpiredError } from 'jsonwebtoken';
 import moment from 'moment';
 import sql from 'mssql';
+import { dbConfig } from '.';
+
+/**
+ * Handler functions for authentication and user handling
+ * 
+ */
 
 var jwt = require('jsonwebtoken');
-
+console.log(process.env.DB_USERS)
+// region Query 
+/** Queries database for supplied username and returns a bool: isUsernameAvailable */
 export async function queryUsername (req: Request, res: Response) {
   const { username } = req.body
   try {
-    const result = await sql.query`SELECT Username FROM Users WHERE Username = ${username}`;  
+    // const result = await sql.query`SELECT Username FROM ${process.env.DB_USERS} 
+    // WHERE Username = ${username}`;  
+    const queryString = "SELECT Username FROM " + process.env.DB_USERS + " WHERE Username = @username";
+
+    const pool = await sql.connect(dbConfig);
+    const result = await pool.request().input('username', sql.VarChar, username).query(queryString)
     // Username is found in the system
     if (result.rowsAffected[0] === 1) {
       res.status(200).json({isUsernameAvailable: false});
       return 
     }
   } catch (error) {
+    console.log(error)
     res.status(500).json({message: 'Error querying database'});
     return
   }
@@ -27,6 +42,12 @@ export async function queryUsername (req: Request, res: Response) {
 }
 
 // region Register
+/** Handles the registration of a user
+ * @returns 200 If successful
+ * @returns 400 If username or password is not supplied
+ * @returns 409 If username is taken
+ * @returns 500 If backend table insertion goes awry
+ */
 export async function handleRegister(req: Request, res: Response) {
   const { username, password, email } = req.body;
 
@@ -44,6 +65,7 @@ export async function handleRegister(req: Request, res: Response) {
       return 
     }
 
+    // Generate password salt
     let newSalt = crypto.randomBytes(16).toString('base64');
     console.log(newSalt)
     let saltedPW = password + newSalt
@@ -51,8 +73,6 @@ export async function handleRegister(req: Request, res: Response) {
     let hashedPW = await argon2.hash(saltedPW)
     console.log(hashedPW)
 
-
-    let date: Date = new Date()
     let dateCreated = moment().format('YYYY-MM-DD HH:mm:ss')
     console.log('Account', username, 'created on', dateCreated)
 
@@ -66,7 +86,7 @@ export async function handleRegister(req: Request, res: Response) {
       const userID = userResult.recordset[0].UserID;
       
       // Create a row in the data table
-      const dataResult = await sql.query`
+      await sql.query`
         INSERT INTO Test 
         (id)
         VALUES (${userID})
@@ -74,8 +94,6 @@ export async function handleRegister(req: Request, res: Response) {
 
       console.log("Successfully inserted a new user into the database!")
       res.status(200).json({message: 'Successfully registered a new user into the database!'})
-      // TODO v Log the user in here and make a JWT token to create a session for them v
-
     } catch (error) {
       console.log(error);
       if (error instanceof Error) {
@@ -92,6 +110,14 @@ export async function handleRegister(req: Request, res: Response) {
 
 
 // region Login
+/** Handles the login request for a user given username and password
+ * @param Takes a raw JSON body: {username: '', password: ''}
+ * @param dev Header: If supplied, sends an already expired token back to user
+ * @returns 200 If everything matches up: Sets access and refresh token cookies in browser as Httponly
+ * @returns 400 If username or password aren't provided with the request OR username is not found in database
+ * @returns 401 If password does not match password in database
+ * @returns 500 If error altering database
+ */
 export async function handleLogin(req: Request, res: Response) {
   // Create a JWT token to send back to user
   // Server recieves username and password 
@@ -170,7 +196,7 @@ export async function handleLogin(req: Request, res: Response) {
         sameSite: 'lax',
       });
       
-
+      // Try to save hashed refresh token with user
       try {      
         let hashedRefreshToken = await argon2.hash(refreshToken)
         console.log(hashedRefreshToken)
@@ -178,19 +204,21 @@ export async function handleLogin(req: Request, res: Response) {
           UPDATE Users
           SET HashedRefreshToken = ${hashedRefreshToken}
           WHERE Username = ${username}
-        `;      
+        `;
+
+        if (result.rowsAffected[0] === 0) {
+          res.status(500).json({message: 'No refresh token was saved.'})
+        }
+
       } catch (error) {
         console.log('Error saving refresh:', error);
-        res.status(500).json({message: 'Error saving refresh token'});
+        res.status(500).json({message: 'Error saving refresh token.'});
         return
       }
 
-
-      let response = {userName: username, accessToken: accessToken, refreshToken: refreshToken}
-      console.log('User logged in successfully, sending back Tokens');
-      res.status(200).json(response);
+      console.log('User logged in successfully.');
+      res.status(200).json({message: 'Logged in successfully.'});
       return
-
 
     } catch (error) {
       console.log(error);
@@ -199,14 +227,6 @@ export async function handleLogin(req: Request, res: Response) {
         return
       }
     }
-
-
-
-    console.log(result)
-
-    
-
-
   } catch (error) {
     console.log(error);
     if (error instanceof Error) {
@@ -217,6 +237,11 @@ export async function handleLogin(req: Request, res: Response) {
 }
 
 // region Logout
+// Is this counterintuitive, we want to clear the sites cookies on logout (Do we touch cookies in frontend?) and clear the hashedRefreshToken in the DB
+/** Handle logout if authenticated to 
+ * @returns 200 If successful deletion of cookies and hashed refresh token
+ * @returns 500 If error performing operations
+*/
 export async function handleLogout(req: Request, res: Response) {
   const user_id = res.locals.session_data.userID;
 
@@ -243,6 +268,11 @@ export async function handleLogout(req: Request, res: Response) {
   res.status(500)
 }
 
+// region Delete 
+/** Handles deletion of User data
+ * @returns 200 If successful
+ * @returns 500 If error performing operations
+ */
 export async function handleDelete(req: Request, res: Response) {
   const user_id = res.locals.session_data.userID;
   try {
@@ -265,20 +295,25 @@ export async function handleDelete(req: Request, res: Response) {
   } catch (error) {
     console.log(error);
     if (error instanceof Error) {
-      res.status(500)
+      res.status(500).json({message: 'Error deleting user from database'})
       return
     }
   }
-  res.status(500)
 }
 
 // region Access token refresh
+/** Handles issuing new access tokens based on supplied refresh token from cookies
+ * @returns 200 If successful: New access token is set 
+ * @returns 400 If refresh token is missing from request or Error verifying token
+ * @returns 401 If refresh token is expired
+ * @returns 500 If all else fails
+ */
 export async function handleRefresh(req: Request, res: Response) {
   console.log('Handle Refresh in backend')
   const refreshToken = req.cookies.spotify_refreshToken;
 
   if (refreshToken === undefined || refreshToken === null) {
-
+    res.status(400).json({message: 'Refresh token missing from request.'})
   }
 
   console.log('refresh:', refreshToken)
@@ -297,7 +332,7 @@ export async function handleRefresh(req: Request, res: Response) {
       let userID = result.recordset[0].UserID;
       let username = result.recordset[0].Username;
 
-      let accessToken = jwt.sign({username: username, userID: userID}, process.env.JWT_SECRET as string, { expiresIn: '2s' })
+      let accessToken = jwt.sign({username: username, userID: userID}, process.env.JWT_SECRET as string, { expiresIn: '1h' })
 
       res.cookie('spotify_accessToken', accessToken, {
         httpOnly: true,

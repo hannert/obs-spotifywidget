@@ -9,10 +9,7 @@ import { jwtMiddleware } from './jwtMiddleware';
 
 console.log(process.env.DB_USER)
 
-
-let client_id = process.env.client_id
-let client_secret = process.env.client_secret
-var redirect_uri = 'http://localhost:' + process.env.PORT + '/callback';
+const base_url = process.env.BASE_URL
 
 const app: Express = express();
 const cookieParser = require('cookie-parser');
@@ -24,7 +21,7 @@ const bodyParser = require('body-parser');
 // region Middleware
 app.use(cors({
   credentials: true,
-  origin: 'http://localhost:3000'
+  origin: base_url
 }))
 app.use(cookieParser())
 app.use(express.json())
@@ -33,11 +30,16 @@ app.use(jwtMiddleware)
 
 // region Database 
 // Database connection config
-const dbConfig: sql.config = {
+export const dbConfig: sql.config = {
   user: process.env.DB_USER as string,
   password: process.env.DB_PASSWORD as string,
   database: process.env.DB_DATABASE as string,
   server: process.env.DB_SERVER as string,
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000
+  },
   options: {
     encrypt: true, // Use encryption when connecting to Azure
     trustServerCertificate: true, // Change to false if you have a valid certificate
@@ -62,7 +64,6 @@ app.post('/client/secret', saveClientSecret);
 app.post('/regenerate', regenerateSecret);
 
 app.get('/secret', getLinkSecret)
-// TODO Have a front end link that calls this route and gives feedback
 app.get('/callback', handleSpotifyLink);
 app.post('/token', saveTokens);
 app.get('/token', getTokens);
