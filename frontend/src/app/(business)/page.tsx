@@ -8,16 +8,6 @@ import { useRouter } from 'next/navigation';
 export default function Home() {
 
   const router = useRouter();
-  const redirectUri = 'http://localhost:3001/callback';
-  const authUrl = new URL("https://accounts.spotify.com/authorize?")
-  const client_id = 'f2df842d1adc42c9b173d709cda23909'
-
-
-  
-  function ping_server() {
-  }
-
-
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">

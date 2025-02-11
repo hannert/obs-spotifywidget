@@ -1,6 +1,7 @@
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import ".././globals.css";
 import { ThemeProvider } from "../theme-provider";
 
@@ -34,7 +35,9 @@ export default function RootLayout({
           defaultTheme='dark'
           disableTransitionOnChange
         >
-          {children}
+          <Suspense>
+            {children}
+          </Suspense>
         </ThemeProvider>
         
       </body>

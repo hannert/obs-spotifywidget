@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
 import { Eye, EyeClosed } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { userDataStore } from "../../store";
+import { SyntheticEvent, useState } from "react";
+import { userDataStore } from "../../store/store";
 export default function Login() {
 
   const [passwordVis, setPasswordVis] = useState(false)
@@ -18,42 +19,35 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleUsername = async (e: any) => {
-    let newText = (e.target as HTMLInputElement).value;
+  const handleUsername = async (e: SyntheticEvent) => {
+    const newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
       setUsername(newText);
     }
   }
-  const handlePassword = (e: any) => {
-    let newText = (e.target as HTMLInputElement).value;
+  const handlePassword = (e: SyntheticEvent) => {
+    const newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
       setPassword(newText);
     }
   }
 
-  const togglePasswordVis = (e: any) => {
-    e.preventDefault();
+  const togglePasswordVis = () => {
     setPasswordVis(!passwordVis);
   }
 
 
-  const submit = async (e: any) => {
+  const submit = async (e: SyntheticEvent) => {
     e.preventDefault();
-    let resCode: number
-    resCode = await loginAction(username as string, password as string);
+    const resCode = await loginAction(username as string, password as string);
     if (resCode === 200) {
-      console.log("200 from LOGIN -> Redirect to home page")
-      try{
-        // Set cookie to denote if the user is logged in or not for useEffects in other pages
-        // Should contain no sensitive data, only boolean
-
-        localStorage.setItem('IsLoggedIn', 'true');
-        router.push('/home');
-      } catch (error) {
-        console.log(error)
-        console.log('Error redirecting to the login page')
-      }
-      
+      // Set cookie to denote if the user is logged in or not for useEffects in other pages
+      // Should contain no sensitive data, only boolean
+      localStorage.setItem('IsLoggedIn', 'true');
+      router.push('/home');
+    }
+    if (resCode === 400 || resCode === 401) {
+      toast({variant: 'destructive', title: 'Unsuccessful Operation', description: 'Login failed! Check credentials.'})
     }
 
   }
@@ -69,7 +63,7 @@ export default function Login() {
       </CardHeader>
       
       <CardContent>
-        <form className='flex'>
+        <div className='flex'>
           <div className="grid w-full items-center gap-4">
             <Label htmlFor='username'>Username</Label>
             <Input 
@@ -102,7 +96,7 @@ export default function Login() {
               <a href='/register' className="hover:underline">or register here</a>
             </div>
           </div>
-        </form>
+        </div>
       </CardContent>
     </Card>
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
-import { userDataStore } from '@/app/store';
-import { protectedDataStore } from '@/app/store/auth-store';
+import { protectedDataStore, StoreResponse } from '@/app/store/auth-store';
+import { userDataStore } from '@/app/store/store';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,15 +18,14 @@ import { useToast } from '@/hooks/use-toast';
 import 'dotenv/config';
 import { Banana, Copy, Pencil, RotateCw, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { KeyboardEvent, SyntheticEvent, useEffect, useState } from 'react';
 
 export default function Home() {
 
   const router = useRouter();
   const { toast } = useToast();
   const clientIDRef = React.useRef(null)
-  const redirectUri = 'http://localhost:3001/callback';
-  const authUrl = new URL("https://accounts.spotify.com/authorize?");
+  const redirectUri = 'http://localhost:3000/callback';
 
   // region Protected
   const clientID = protectedDataStore((state) => state.clientID)
@@ -51,23 +50,33 @@ export default function Home() {
 
   useEffect(() => {
     // First we can check the isLoggedIn localstorage flag
-    let isLoggedIn = localStorage.getItem('IsLoggedIn');
+    const isLoggedIn = localStorage.getItem('IsLoggedIn');
     if (isLoggedIn !== 'true') {
-
+      
+      router.push('/');
+      toast({title: 'Not authorized!', description: 'You are not logged in.'});
+      return
     }
 
     setOriginURL(window.location.origin);
 
-    // Fetch client id and secret
+
+    // Helper function to call async functions within page load useEffect
+    const startHelper = async() => {
+      await protectedWrapper(getClientsAction);
+      await protectedWrapper(getLinkSecretsAction);
+    }
+    // Call fetch client id and secret
     startHelper()
-  }, [])
+    
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // region Protected Resources
   /**
    * A wrapper function that calls the supplied function and tries again if 401 code is returned after attempted refresh of tokens. Pushes to home page if all attempts fail.
    * @param fn 
    */
-  async function protectedWrapper(fn: any) {
+  async function protectedWrapper(fn: () => Promise<StoreResponse>) {
     // Try the original function first
     const firstTryResponse = await fn();
     //console.log('first try', firstTryResponse.status)
@@ -79,8 +88,8 @@ export default function Home() {
     // Unauthorized / Token has expired
     if (firstTryResponse.status === 401) {
       // Try to refresh
-      //console.log('Trying to refresh')
-      const refreshResponse = await refreshAuthTokenAction()
+      // TODO Should we check if this is a success?
+      await refreshAuthTokenAction()
 
       const secondTryResponse = await fn();
 
@@ -96,11 +105,7 @@ export default function Home() {
     }
   }
 
-  // Helper function to call async functions within page load useEffect
-  async function startHelper() {
-    await protectedWrapper(getClientsAction);
-    await protectedWrapper(getLinkSecretsAction);
-  }
+
 
   // Shows an error popup with the supplied message
   function toastErrorHelper(message: string) {
@@ -120,7 +125,7 @@ export default function Home() {
   const handleSaveSecret = async () => {
     const response = await saveClientSecretAction(clientSecret);
     if (response.status === 200) {
-      toggleSecretVis(null);
+      toggleSecretVis();
     }
     return response
   }
@@ -139,9 +144,9 @@ export default function Home() {
 
   // region Controlled Input Handler
   // handle client id text input
-  const handleClientID = (e: any) => {
+  const handleClientID = (e: SyntheticEvent) => {
     e.preventDefault();
-    let newText = (e.target as HTMLInputElement).value;
+    const newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
       setClientIDChanged(true);
       setClientIDAction(newText)
@@ -149,24 +154,33 @@ export default function Home() {
   }
 
   // Toggle secret visibility and editing
-  const toggleSecretVis = (e: any) => {
-    if (e === Event) {
-      e.preventDefault();
-    }
+  const toggleSecretVis = () => {
+    //e.preventDefault();
     setSecretVis(!secretVis);
   }
 
   // Handle client secret text input 
-  const handleClientSecret = (e: any) => {
-    let newText = (e.target as HTMLInputElement).value;
+  const handleClientSecret = (e: SyntheticEvent) => {
+    const newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
       setClientSecretAction(newText);
     }
   }
+
+  // Handle user clicking authenticate 
+  const handleAuthorizeLink = () => {
+    window.open('https://accounts.spotify.com/authorize?' +
+                new URLSearchParams({
+                  response_type: 'code',
+                  client_id: clientID as string,
+                  scope: 'user-read-currently-playing',
+                  redirect_uri: redirectUri,
+                }).toString(), '_blank')
+  }
   
 
   // TODO: Allow keyboard input to save resources
-  const handleKeyDown = (e: any) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
 
     }
@@ -224,19 +238,12 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            <a
-              className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-              href={'https://accounts.spotify.com/authorize?' +
-                new URLSearchParams({
-                  response_type: 'code',
-                  client_id: clientID as string,
-                  scope: 'user-read-currently-playing',
-                  redirect_uri: redirectUri,
-                }).toString()}
-              target='_blank'
-            >
-              Authorize application
-            </a>
+
+            <Button onClick={handleAuthorizeLink} disabled={(clientID === null || clientID === '' || clientSecret === null)}>
+              Authorize
+            </Button>
+
+
 
           </div>
 
@@ -267,7 +274,7 @@ export default function Home() {
             </Dialog>
 
             <Separator orientation='horizontal'/>
-            <Button onClick={() => protectedWrapper(handleRegenerate)}>
+            <Button variant='ghost' onClick={() => protectedWrapper(handleRegenerate)}>
               <RotateCw /> Regenerate secret
             </Button>
           </div>

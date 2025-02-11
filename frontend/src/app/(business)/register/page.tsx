@@ -7,13 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeClosed } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { userDataStore } from "../../store";
+import { SyntheticEvent, useState } from "react";
+import { userDataStore, UsernameQuery } from "../../store/store";
 export default function Login() {
 
   const registerAction = userDataStore((state) => state.register);
   const checkUsername = userDataStore((state) => state.checkUsername);
-  const loginAction = userDataStore((state) => state.login);
   const router = useRouter();
 
   const [passwordVis, setPasswordVis] = useState(false);
@@ -28,40 +27,34 @@ export default function Login() {
   const [passwordSub, setPasswordSub] = useState('');
 
   const [email, setEmail] = useState('');
-  const [confirmEmail, setConfirmEmail] = useState('');
   const [emailError, setEmailError] = useState(false);
   const [emailSub, setEmailSub] = useState('');
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-
-  const [isSubmitValid, setIsSubmitValid] = useState(false);
+  //const [isSubmitValid, setIsSubmitValid] = useState(false);
 
 
-  const handleUsername = async (e: any) => {
-    console.log(e)
-    let newText = (e.target as HTMLInputElement).value;
+  const handleUsername = async (e: SyntheticEvent) => {
+    const newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
       setUsernameError(false)
       setUsername(newText);
       // Check if username is taken 
-      let result = await checkUsername(newText) as any;
+      const result = await checkUsername(newText) as UsernameQuery;
       if (result.isUsernameAvailable === false) {
         setUsernameError(true);
         setUsernameSub('Username is taken!');
       }
-
     }
   }
 
   // TODO : Password strength checker
-  const handlePassword = (e: any) => {
+  const handlePassword = (e: SyntheticEvent) => {
     if ((e.target as HTMLInputElement).value !== null){
       setPassword((e.target as HTMLInputElement).value);
     }
   }
-  const handleConfirmPassword = (e: any) => {
-    let newText = (e.target as HTMLInputElement).value;
+  const handleConfirmPassword = (e: SyntheticEvent) => {
+    const newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
       setPasswordError(false);
       setConfirmPassword(newText);
@@ -78,8 +71,8 @@ export default function Login() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   }
 
-  const handleEmail = (e: any) => {
-    let newText = (e.target as HTMLInputElement).value;
+  const handleEmail = (e: SyntheticEvent) => {
+    const newText = (e.target as HTMLInputElement).value;
     if (newText !== null){
       setEmailError(false);
       setEmail(newText);
@@ -89,54 +82,30 @@ export default function Login() {
       }
     }
   }
-  const handleConfirmEmail = (e: any) => {
-    if ((e.target as HTMLInputElement).value !== null){
-      setConfirmEmail((e.target as HTMLInputElement).value);
-    }
-  }
 
-
-  const togglePasswordVis = (e: any) => {
+  const togglePasswordVis = (e: SyntheticEvent) => {
     e.preventDefault();
     setPasswordVis(!passwordVis);
   }
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
 
-    const formData = new FormData(event.currentTarget);
-    const { username, password } = Object.fromEntries(formData);
-    console.log(username, password)
-  }
-
-  const submitNew = async () => {
+  const handleSubmit = async () => {
     // Check if all fields are valid
-
-
-
-    let response = await registerAction(username, password, email)
+    const response = await registerAction(username, password, email)
     if (response !== 200){
       // Not successful
       if (response == 409) {
         console.log('409');
-        return;
+        return
       }
 
+      return
     }
-
-    // Successful registration: Try to log in with that information and push to home
-    try {
-      let loginResponse = await loginAction(username, password);
-      if (loginResponse === 200) { router.push('/home') }
-    } catch (error) {
-      console.log(error)
+    if (response === 200){
+      // Successful registration: Try to log in with that information and push to home
+      router.push('/home');      
     }
-
-
-
-
   }
-
 
   return (
     <div className="w-full h-dvh flex items-center justify-center">
@@ -147,7 +116,7 @@ export default function Login() {
           </CardTitle>
         </CardHeader>
       <CardContent>
-        <form onSubmit={(e) => submit(e)}>
+        <form>
           <div className='flex flex-col gap-4'>
             <div className='flex flex-col'>
               <Label>Username</Label>
@@ -214,7 +183,7 @@ export default function Login() {
           
           <Button 
             type="submit" 
-            onClick={submitNew} 
+            onClick={handleSubmit} 
           >
             Submit
           </Button>

@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Github, Home, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import ".././globals.css";
-import { userDataStore } from "../store";
+import { userDataStore } from "../store/store";
 
 export default function Toolbar() {
 
@@ -17,7 +17,7 @@ export default function Toolbar() {
 
   const handleLogout = async () => {
     try {
-      const res = await logoutAction();
+      await logoutAction();
       localStorage.removeItem('IsLoggedIn');
       router.push('/');
       return

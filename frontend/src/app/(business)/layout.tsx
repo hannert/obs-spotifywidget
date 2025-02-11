@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import ".././globals.css";
 import { ThemeProvider } from ".././theme-provider";
 import Toolbar from "./toolbar";
@@ -39,7 +40,10 @@ export default function businessLayout({
           disableTransitionOnChange
         >
           <Toolbar />
-          {children}
+          <Suspense>
+            {children}
+          </Suspense>
+          
           <Toaster />
         </ThemeProvider>
         

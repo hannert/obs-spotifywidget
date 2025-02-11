@@ -2,23 +2,25 @@
 
 import 'dotenv/config';
 import { create } from 'zustand';
+const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+console.log(backendURL)
+export type UsernameQuery = {
+  isUsernameAvailable: boolean
+}
 
-let backendURL = 'http://localhost:3001'
+
 interface credentials {
-  tokens: object,
   username: string,
   login: (username: string, password: string) => Promise<number>,
-  landing: () => Promise<number>,
   logout: () => Promise<number>,
   register: (username: string, password: string, email: string) => Promise<number>,
-  checkUsername: (username: string) => Object,
-  checkEmail: (email: string) => Object,
+  checkUsername: (username: string) => Promise<UsernameQuery>,
+  checkEmail: (email: string) => object,
   setUsername: (username: string) => void,
   refresh: () => Promise<number>
 }
 
 export const userDataStore = create<credentials>((set) => ({
-  tokens: {},
   username: '',
   login: async (username: string, password: string) => {
     console.log(username, password)
@@ -31,23 +33,12 @@ export const userDataStore = create<credentials>((set) => ({
       },
       body: JSON.stringify({username: username, password: password})
     })
-    set({tokens: await response.json(), username: username})
+    set({username: username})
     return response.status
     } catch (error) {
       console.log(error)
     }
     return 400
-  },
-  landing: async () => {
-    try{
-      const response = await fetch(backendURL + '/landing', {
-      method: 'POST',
-      credentials: 'include',
-      })
-      return response.status
-
-    } catch (error) {}
-    return 0
   },
   logout: async () => {
     console.log('Logging out')
@@ -78,8 +69,7 @@ export const userDataStore = create<credentials>((set) => ({
       console.log(JSON.stringify({
         username: username
       }))
-      let returnJSON = {}
-      await fetch(backendURL + '/auth/query/username', {
+      const response = await fetch(backendURL + '/auth/query/username', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -87,13 +77,14 @@ export const userDataStore = create<credentials>((set) => ({
         body: JSON.stringify({
           username: username
         })
-      }).then((response) => response.json()).then((data) =>  returnJSON = data)
+      })
+      const returnJSON: UsernameQuery = await response.json()
       console.log(returnJSON)
       return returnJSON
     } catch (error) {
       console.log(error)
     }
-    return null
+    return ({isUsernameAvailable: false})
   },
   checkEmail: async (email: string) => {
     try {
@@ -131,13 +122,23 @@ export const userDataStore = create<credentials>((set) => ({
   }
 }))
 
+export type SpotifyPayload = {
+  status: number,
+  data: {
+    Access_Token: string | '',
+    Refresh_Token: string | '',
+  }
+}
+
+
+
 interface spotifyState {
   accessToken: string,
   refreshToken: string,
   setAccess: (newToken: string) => string,
   setRefresh: (newToken: string) => Promise<string>,
-  getTokens: (id: string) => any,
-  refreshTokens: (secret: string, refreshToken: string) => any
+  getTokens: (id: string) => Promise<SpotifyPayload>,
+  refreshTokens: (secret: string, refreshToken: string) => Promise<string>
 }
 
 export const spotifyDataStore = create<spotifyState>()((set) => ({
@@ -169,10 +170,12 @@ export const spotifyDataStore = create<spotifyState>()((set) => ({
 
 
 interface SongState {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   currentSong: any,
   setSong: (song: object) => void
 }
 export const songDataStore = create<SongState>()((set) => ({
   currentSong: {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setSong: (song: any) => set(() => ({currentSong: song}))
 }))

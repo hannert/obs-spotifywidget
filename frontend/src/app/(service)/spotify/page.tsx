@@ -1,22 +1,25 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import dotenv from 'dotenv';
 import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
-import { songDataStore, spotifyDataStore } from '../../store';
+import { useEffect, useState } from 'react';
+import { songDataStore, spotifyDataStore } from '../../store/store';
 
 
 
 export default function Spotify() {
   dotenv.config({ path: '.env' });
 
-  const getTokensAction = spotifyDataStore((state) => state.getTokens);
-  const refreshTokensAction = spotifyDataStore((state) => state.refreshTokens);
+    const refreshTokensAction = spotifyDataStore((state) => state.refreshTokens);
 
-  let access_token: string;
-  let refresh_token: string;
+  // let access_token: string;
+  // let refresh_token: string;
 
-  let songFetchLoop: any;
+  const [access_token, set_access_token] = useState('')
+  const [refresh_token, set_refresh_token] = useState('')
+
+  let songFetchLoop: NodeJS.Timeout;
 
   const currentSong = songDataStore((state) => state.currentSong);
   const setSong = songDataStore((state) => state.setSong);
@@ -25,31 +28,34 @@ export default function Spotify() {
   const secret = searchParams.get('secret')
   // const dev = searchParams.get('dev')
 
-  useEffect(() => {
+  useEffect(() => {    
+    const getTokensAction = spotifyDataStore((state) => state.getTokens);
+    const startHelper = async () => {
+      if (secret !== null){
+        const tokensResponse =  await getTokensAction(secret);
+        if (tokensResponse.status === 200){
+          // es
+          set_access_token(tokensResponse.data.Access_Token)
+          set_refresh_token(tokensResponse.data.Refresh_Token)
+          // access_token = tokensResponse.data.Access_Token;
+          // refresh_token = tokensResponse.data.Refresh_Token;
+          // Start interval for data retrieval
+          //testGetSong()
+          setRepeat();
+        }
+      }
+    }
     // Set tokens in app when loading in
     try {
       if (secret !== null) {
         startHelper();
       }
-      
     } catch (error) {
+      console.log(error)
     }
-
-  }, [])
-
-  const startHelper = async () => {
-    if (secret !== null){
-      const tokensResponse =  await getTokensAction(secret);
-      if (tokensResponse.status === 200){
-        access_token = tokensResponse.data.Access_Token;
-        refresh_token = tokensResponse.data.Refresh_Token;
-        // Start interval for data retrieval
-        //testGetSong()
-        setRepeat();
-      }
-     
-    }
-  }
+  }, 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [])
 
 
   async function testRefresh() {
@@ -57,8 +63,9 @@ export default function Spotify() {
     console.log('test refresh token:', refresh_token)
     if(secret !== null && refresh_token !== null){
       const test = await refreshTokensAction(secret, refresh_token);
-      console.log('test', test);    
-      access_token = test
+      console.log('test', test);
+      set_access_token(test)
+      // access_token = test
       // let tempToken = setAccessToken(test);
       setRepeat()
     }
@@ -86,7 +93,7 @@ export default function Spotify() {
       }
     }
     if (response.status === 200 && response.body !== null){
-      let data = await response.json();
+      const data = await response.json();
       setSong(data)
       console.log(data)
     }
@@ -99,7 +106,7 @@ export default function Spotify() {
 
 
         <div>
-          <img src={currentSong?.item?.album.images[2].url} />
+          <img src={currentSong?.item?.album.images[2].url} alt="album picture"/>
         </div>
         <div>
           <div className="w-64 whitespace-nowrap overflow-hidden">{currentSong?.item?.name}</div>
