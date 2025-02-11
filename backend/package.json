@@ -4,7 +4,8 @@
   "description": "Backend Server for spotify widget",
   "main": "index.js",
   "scripts": {
-    "start": "npx tsx index.ts"
+    "start": "npx tsx index.ts",
+    "prod": "cross-env NODE_ENV=prod npx tsx index.ts"
   },
   "author": "",
   "license": "ISC",
@@ -21,10 +22,13 @@
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
     "mssql": "^11.0.1",
-    "run": "^1.5.0"
+    "run": "^1.5.0",
+    "tsx": "^4.19.2",
+    "yn": "^5.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.1",
-    "@types/node": "^22.13.1"
+    "@types/node": "^22.13.1",
+    "cross-env": "^7.0.3"
   }
 }

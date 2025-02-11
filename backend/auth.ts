@@ -165,7 +165,7 @@ export async function handleLogin(req: Request, res: Response) {
         res.cookie('spotify_accessToken', signedToken, {
           httpOnly: true,
           secure: true,
-          sameSite: 'lax',
+          sameSite: 'none',
         });
         
         res.status(200).json({data: signedToken});
@@ -181,20 +181,21 @@ export async function handleLogin(req: Request, res: Response) {
       res.cookie('spotify_userName', username, {
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
+        sameSite: 'none',
       });
 
       res.cookie('spotify_accessToken', accessToken, {
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
+        sameSite: 'none',
       });
 
       res.cookie('spotify_refreshToken', refreshToken, {
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
+        sameSite: 'none',
       });
+      
       
       // Try to save hashed refresh token with user
       try {      
@@ -313,7 +314,9 @@ export async function handleRefresh(req: Request, res: Response) {
   const refreshToken = req.cookies.spotify_refreshToken;
 
   if (refreshToken === undefined || refreshToken === null) {
+    console.log('Refresh missing')
     res.status(400).json({message: 'Refresh token missing from request.'})
+    return
   }
 
   console.log('refresh:', refreshToken)
@@ -337,7 +340,7 @@ export async function handleRefresh(req: Request, res: Response) {
       res.cookie('spotify_accessToken', accessToken, {
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
+        sameSite: 'none',
       });
       res.status(200).json({ message: 'Successful access token refresh.'});
       return

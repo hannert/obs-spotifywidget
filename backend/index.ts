@@ -1,13 +1,14 @@
 import cors from 'cors';
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express, { Express } from 'express';
 import sql from 'mssql';
+import yn from 'yn';
 import { handleDelete, handleLogin, handleLogout, handleRefresh, handleRegister, queryUsername } from './auth';
 import { getClient, getLinkSecret, getTokens, handleSpotifyLink, refreshTokens, regenerateSecret, saveClientId, saveClientSecret, saveTokens } from './data';
 import { jwtMiddleware } from './jwtMiddleware';
 
-
-console.log(process.env.DB_USER)
+dotenv.config({ path: `.env.${process.env.NODE_ENV}`});
+console.log(`.env.${process.env.NODE_ENV}`)
 
 export const base_url = process.env.BASE_URL;
 
@@ -38,14 +39,15 @@ export const dbConfig: sql.config = {
     idleTimeoutMillis: 30000
   },
   options: {
-    encrypt: true, // Use encryption when connecting to Azure
-    trustServerCertificate: true, // Change to false if you have a valid certificate
+    encrypt: yn(process.env.DB_ENCRYPT) ?? true, // Use encryption when connecting to Azure
+    trustServerCertificate: yn(process.env.DB_TRUST_SERVER) || false, // Change to false if you have a valid certificate
   },
 };
 
 // Connect to Azure SQL Database and handle errors
 async function connectToDb() {
   try {
+    console.log(dbConfig)
     await sql.connect(dbConfig);
     console.log('Connected to Azure SQL Database!');
   } catch (error) {

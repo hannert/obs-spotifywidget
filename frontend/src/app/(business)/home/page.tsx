@@ -25,7 +25,7 @@ export default function Home() {
   const router = useRouter();
   const { toast } = useToast();
   const clientIDRef = React.useRef(null)
-  const redirectUri = 'http://localhost:3000/callback';
+  const redirectUri = "https://localhost:3000" + '/callback';
 
   // region Protected
   const clientID = protectedDataStore((state) => state.clientID)
@@ -174,7 +174,7 @@ export default function Home() {
                   response_type: 'code',
                   client_id: clientID as string,
                   scope: 'user-read-currently-playing user-read-playback-state',
-                  redirect_uri: redirectUri,
+                  redirect_uri: window.origin + '/callback',
                   show_dialog: 'true',
                 }).toString(), '_blank')
   }
