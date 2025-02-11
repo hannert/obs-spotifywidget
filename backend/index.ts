@@ -15,9 +15,6 @@ const app: Express = express();
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 
-
-
-
 // region Middleware
 app.use(cors({
   credentials: true,
@@ -44,7 +41,6 @@ export const dbConfig: sql.config = {
     encrypt: true, // Use encryption when connecting to Azure
     trustServerCertificate: true, // Change to false if you have a valid certificate
   },
-  
 };
 
 // Connect to Azure SQL Database and handle errors
@@ -78,7 +74,7 @@ app.post('/auth/logout', handleLogout);
 app.post('/auth/delete', handleDelete);
 app.post('/auth/refresh', handleRefresh);
 
-app.listen(process.env.port, () => {
-  console.log('Listening', process.env.port);
+app.listen(process.env.PORT, () => {
+  console.log('Listening', process.env.PORT);
   connectToDb();
 })

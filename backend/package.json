@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Backend Server for spotify widget",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "start": "npx tsx index.ts"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
