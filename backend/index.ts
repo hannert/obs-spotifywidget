@@ -74,7 +74,7 @@ app.post('/auth/logout', handleLogout);
 app.post('/auth/delete', handleDelete);
 app.post('/auth/refresh', handleRefresh);
 
-app.listen(process.env.PORT, () => {
+app.listen(process.env.PORT || 80, () => {
   console.log('Listening', process.env.PORT);
   connectToDb();
 })
