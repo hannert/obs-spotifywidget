@@ -173,8 +173,9 @@ export default function Home() {
                 new URLSearchParams({
                   response_type: 'code',
                   client_id: clientID as string,
-                  scope: 'user-read-currently-playing',
+                  scope: 'user-read-currently-playing user-read-playback-state',
                   redirect_uri: redirectUri,
+                  show_dialog: 'true',
                 }).toString(), '_blank')
   }
   

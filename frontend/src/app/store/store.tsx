@@ -157,6 +157,7 @@ export const spotifyDataStore = create<spotifyState>()((set) => ({
   getTokens: async (secret: string) =>  {
     const response = await fetch('http://localhost:3001/token' + '?secret=' + secret)
     const body = await response.json();
+    set(() => ({accessToken: body.data.Access_Token, refreshToken: body.data.Refresh_Token}))
     console.log({status: response.status, data: body.data})
     return {status: response.status, data: body.data};
   },

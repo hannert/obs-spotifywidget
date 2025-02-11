@@ -12,11 +12,8 @@ export default function Home() {
   const refreshAuthTokenAction = userDataStore((state) => state.refresh);
   const [text, setText] = useState('');
 
-  useEffect(() => {
-    linkApplicationHelper();
-  })
-
-  async function linkApplicationHelper () {
+  useEffect(() => {  
+    async function linkApplicationHelper () {
     if (code !== null) {
       // save to database
       try {
@@ -26,6 +23,7 @@ export default function Home() {
         });
 
         if (response.status === 401) {
+          console.log('401 DETECTED --------------')
           await refreshAuthTokenAction();
 
           const secondResponse = await fetch(backendURL + '/callback?code=' + code, {
@@ -57,6 +55,10 @@ export default function Home() {
       toast({title: 'X Error!', description: 'An error occured while trying to link apps.'});
     }
   }
+    linkApplicationHelper();
+  }, [])
+
+
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">

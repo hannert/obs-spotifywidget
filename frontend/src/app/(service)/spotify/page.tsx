@@ -3,7 +3,7 @@
 
 import dotenv from 'dotenv';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { songDataStore, spotifyDataStore } from '../../store/store';
 
 
@@ -12,12 +12,15 @@ export default function Spotify() {
   dotenv.config({ path: '.env' });
 
     const refreshTokensAction = spotifyDataStore((state) => state.refreshTokens);
+    const getTokensAction = spotifyDataStore((state) => state.getTokens);
 
-  // let access_token: string;
-  // let refresh_token: string;
+  let access_token: string;
+  let refresh_token: string;
+  // const access_token = spotifyDataStore((state) => state.accessToken);
+  // const refresh_token = spotifyDataStore((state) => state.refreshToken);
 
-  const [access_token, set_access_token] = useState('')
-  const [refresh_token, set_refresh_token] = useState('')
+  // const [access_token, set_access_token] = useState('')
+  // const [refresh_token, set_refresh_token] = useState('')
 
   let songFetchLoop: NodeJS.Timeout;
 
@@ -27,24 +30,21 @@ export default function Spotify() {
   const searchParams = useSearchParams();
   const secret = searchParams.get('secret')
   // const dev = searchParams.get('dev')
-
-  useEffect(() => {    
-    const getTokensAction = spotifyDataStore((state) => state.getTokens);
     const startHelper = async () => {
       if (secret !== null){
         const tokensResponse =  await getTokensAction(secret);
         if (tokensResponse.status === 200){
-          // es
-          set_access_token(tokensResponse.data.Access_Token)
-          set_refresh_token(tokensResponse.data.Refresh_Token)
-          // access_token = tokensResponse.data.Access_Token;
-          // refresh_token = tokensResponse.data.Refresh_Token;
+          access_token = tokensResponse.data.Access_Token;
+          refresh_token = tokensResponse.data.Refresh_Token;
           // Start interval for data retrieval
           //testGetSong()
+          console.log(access_token)
           setRepeat();
         }
       }
     }
+  useEffect(() => {    
+
     // Set tokens in app when loading in
     try {
       if (secret !== null) {
@@ -64,10 +64,9 @@ export default function Spotify() {
     if(secret !== null && refresh_token !== null){
       const test = await refreshTokensAction(secret, refresh_token);
       console.log('test', test);
-      set_access_token(test)
-      // access_token = test
+      access_token = test
       // let tempToken = setAccessToken(test);
-      setRepeat()
+      return setRepeat()
     }
 
   }
@@ -76,6 +75,7 @@ export default function Spotify() {
   }
 
   async function testGetSong() {
+    console.log(access_token)
     const response = await fetch('https://api.spotify.com/v1/me/player', {
       method: 'GET',
       headers: {
@@ -88,7 +88,7 @@ export default function Spotify() {
       // Refresh token
       if (secret !== null){
         console.log("REFRESHING ------------------")
-        testRefresh();
+        //testRefresh();
         return;
       }
     }
