@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spotify Widget",
+  title: "Minim",
   description: "Spotify Widget",
 };
 

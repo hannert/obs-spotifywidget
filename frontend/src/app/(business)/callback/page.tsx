@@ -56,7 +56,8 @@ export default function Home() {
     }
   }
     linkApplicationHelper();
-  }, [])
+
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
 
 

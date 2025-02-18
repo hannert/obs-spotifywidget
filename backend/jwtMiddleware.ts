@@ -27,6 +27,7 @@ export const jwtMiddleware = async function (req: Request, res: Response, next) 
 
       // Set user data for the subsequent request 
       res.locals.session_data = verSession;
+      console.log('Authorized')
       next();
     } catch (error) {
       // if (error instanceof TokenExpiredError) {
@@ -34,7 +35,8 @@ export const jwtMiddleware = async function (req: Request, res: Response, next) 
       //   // Access Token Expired: Now check refresh token
       //   return
       // }
-      res.status(401).json({message: 'Unauthorized/Invalid token.'})
+      console.log('Unauthorized')
+      res.status(401).json({message: 'Unauthorized/Invalid token.', error: error})
       return
     }
   } else {

@@ -25,7 +25,6 @@ export default function Home() {
   const router = useRouter();
   const { toast } = useToast();
   const clientIDRef = React.useRef(null)
-  const redirectUri = "https://localhost:3000" + '/callback';
 
   // region Protected
   const clientID = protectedDataStore((state) => state.clientID)

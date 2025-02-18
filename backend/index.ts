@@ -11,15 +11,20 @@ dotenv.config({ path: `.env.${process.env.NODE_ENV}`});
 console.log(`.env.${process.env.NODE_ENV}`)
 
 export const base_url = process.env.BASE_URL;
+// !~ Variable to see if in production. Webkit (Safari) doesn't store cookies when they are set to production settings (SameSite:None, Secure) -> (SameSite:Lax)
+export const prod = yn(process.env.PROD);
+export const cookieSameSite = prod ? 'none' : 'lax';
+export const cookieSecure = prod;
 
 const app: Express = express();
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 
+
 // region Middleware
 app.use(cors({
   credentials: true,
-  origin: base_url
+  origin: [base_url, 'http://localhost:3000']
 }))
 app.use(cookieParser())
 app.use(express.json())
@@ -54,6 +59,10 @@ async function connectToDb() {
     console.error('Database connection failed:', error);
   }
 }
+
+app.get('/', (req, res) => {
+  res.status(200).send('Hello =)')
+})
 
 // region Data Handling
 app.get('/client', getClient);

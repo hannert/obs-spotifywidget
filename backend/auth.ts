@@ -6,7 +6,7 @@ import { Request, Response } from 'express';
 import { JwtPayload, TokenExpiredError } from 'jsonwebtoken';
 import moment from 'moment';
 import sql from 'mssql';
-import { dbConfig } from '.';
+import { cookieSameSite, cookieSecure, dbConfig, prod } from '.';
 
 /**
  * Handler functions for authentication and user handling
@@ -180,20 +180,20 @@ export async function handleLogin(req: Request, res: Response) {
 
       res.cookie('spotify_userName', username, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
       });
 
       res.cookie('spotify_accessToken', accessToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
       });
 
       res.cookie('spotify_refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
       });
       
       

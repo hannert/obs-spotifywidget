@@ -88,7 +88,7 @@ export default function Spotify() {
       // Refresh token
       if (secret !== null){
         console.log("REFRESHING ------------------")
-        //testRefresh();
+        testRefresh();
         return;
       }
     }

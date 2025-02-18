@@ -1,0 +1,4 @@
+NOTES:
+
+> Spotify Web API demands secure links for edirection so 'dev' is for manual testing 
+> Playwright uses the 'test' command, which runs the development version WITHOUT the https localhost
