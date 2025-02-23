@@ -1,0 +1,60 @@
+-- USE master;
+-- GO
+-- EXEC sp_configure 'remote access', 1;
+-- RECONFIGURE;
+-- GO
+
+CREATE DATABASE $(DB_DATABASE)
+GO
+CREATE LOGIN $(DB_LOGIN) WITH PASSWORD ='''$(MSSQL_SA_PASSWORD)'''
+GO
+ALTER SERVER ROLE sysadmin ADD MEMBER $(DB_LOGIN)
+GO
+
+
+USE $(DB_DATABASE)
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[$(DB_USERS_TABLE)](
+	[UserID] [int] IDENTITY(1,1) NOT NULL,
+	[UserName] [varchar](20) NOT NULL,
+	[HashedPassword] [varchar](100) NULL,
+	[PasswordSalt] [nvarchar](50) NULL,
+	[Email] [nvarchar](50) NULL,
+	[DateCreated] [date] NULL,
+	[HashedRefreshToken] [varchar](128) NULL,
+ CONSTRAINT [PK_Users] PRIMARY KEY CLUSTERED 
+(
+	[UserID] ASC,
+	[UserName] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY],
+ CONSTRAINT [UserID] UNIQUE NONCLUSTERED 
+(
+	[UserID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[$(DB_SPOTIFY_TABLE)](
+	[id] [int] NOT NULL,
+	[Access_Token] [nvarchar](500) NULL,
+	[Refresh_Token] [nvarchar](500) NULL,
+	[Expires_At] [datetime2](7) NULL,
+	[Client_Id] [nvarchar](100) NULL,
+	[Client_Secret] [nvarchar](100) NULL,
+	[App_Secret ] [nvarchar](100) NULL
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[$(DB_SPOTIFY_TABLE)]  WITH CHECK ADD  CONSTRAINT [FK_User_ID] FOREIGN KEY([id])
+REFERENCES [dbo].[$(DB_USERS_TABLE)] ([UserID])
+GO
+ALTER TABLE [dbo].[$(DB_SPOTIFY_TABLE)] CHECK CONSTRAINT [FK_User_ID]
+GO
+
