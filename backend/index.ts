@@ -13,13 +13,18 @@ console.log(`.env.${process.env.NODE_ENV}`)
 export const base_url = process.env.BASE_URL;
 // !~ Variable to see if in production. Webkit (Safari) doesn't store cookies when they are set to production settings (SameSite:None, Secure) -> (SameSite:Lax)
 export const prod = yn(process.env.PROD);
-export const cookieSameSite = prod ? 'none' : 'lax';
-export const cookieSecure = prod;
+export const cookieSameSite = prod ? 'lax' : 'none';
+export const cookieSecure = true;
+console.log(cookieSameSite)
+console.log(cookieSecure)
 
 const app: Express = express();
 const cookieParser = require('cookie-parser');
-const bodyParser = require('body-parser');
 
+// Variable 
+var retryID: NodeJS.Timeout;
+var numTries: number = 0;
+var maxTries: number = 30;
 
 // region Middleware
 app.use(cors({
@@ -52,13 +57,22 @@ export const dbConfig: sql.config = {
 // Connect to Azure SQL Database and handle errors
 async function connectToDb() {
   try {
+    if (numTries >= maxTries) {
+      return;
+    }
+    numTries++;
     console.log(dbConfig)
     await sql.connect(dbConfig);
     console.log('Connected to Azure SQL Database!');
+    clearInterval(retryID);
+    return true
   } catch (error) {
     console.error('Database connection failed:', error);
+    return false
   }
 }
+
+const sleep = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms));
 
 app.get('/', (req, res) => {
   res.status(200).send('Hello =)')
@@ -85,7 +99,13 @@ app.post('/auth/logout', handleLogout);
 app.post('/auth/delete', handleDelete);
 app.post('/auth/refresh', handleRefresh);
 
-app.listen(process.env.PORT || 80, () => {
+app.listen(process.env.PORT || 80, async () => {
   console.log('Listening', process.env.PORT);
-  connectToDb();
+
+  for (let i = 0; i < 30; i++) {
+    await sleep(3000);
+    const result = await connectToDb();
+    if (result === true) { break };
+    
+  }
 })
