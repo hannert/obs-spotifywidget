@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
+A web page that stores user's spotify API key and creates a secret link to use in OBS to display song details while streaming.
+![Graphic](https://github.com/user-attachments/assets/8c5c5a6d-8d1a-43b8-bdfc-9b33bf83ac7c)
+![Stream Example](https://github.com/user-attachments/assets/8da62fcc-052d-4ac9-8154-d873c928e7c0)
+<sub>An example used in OBS, located in the bottom left of the screen.</sub>
 ## Getting Started
+This is a monorepo, seperating frontend and backend to their own folders.
 
-First, run the development server:
+## Frontend
+For frontend development:
+- Uses Next.js
 
 ```bash
+cd frontend
+npm i
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+> Uses experimental Next.js feature to run localhost through HTTPS.
+> ** Spotify Web API needs to be redirected to **
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [https://localhost:3000](https://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Backend
+For backend development:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Uses cross-env .env files based on script ran.
+Development ENV example:
+- HOST=`127.0.0.1`
 
-## Learn More
+- BASE_URL=`https://localhost:3000`
+- SELF_URL=`http://localhost:3001`
 
-To learn more about Next.js, take a look at the following resources:
+- JWT_SECRET=`<Generate a secret somewhere>`
+- PROD=`false`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- DB_SERVER=`localhost\MSSQLSERVER`
+- DB_USER=`dev_test`
+- DB_PASSWORD=`123`
+- DB_DATABASE=`TestDB`
+- DB_ENCRYPT=`true`
+- DB_TRUST_SERVER=`true`
+- DB_USERS_TABLE=`Users`
+- DB_SPOTIFY_TABLE=`Spotify`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- PORT=`3001`
+  
+### SQL Layout
+I use Azure Data Studio to manage my DB locally.
+> Make sure to set the server to accept remote connections in an SQL server manager!
 
-## Deploy on Vercel
+- User Table Layout
+  
+| id | Access_Token | Refresh_Token | Expires_At | Client_Id | Client_Secret | App_Secret |
+| --- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |
+| int | nvarchar(x) | nvarchar(x) | datetime2(7) | nvarchar(x) | nvarchar(x) | nvarchar(x) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+> To see table layout, you can check out the setup.sql file for the table construction in the SQL database.
+> located at: ** backend/docker/db/setup.sql **
+
+```bash
+cd backend
+npm i
+npm run start
+```
