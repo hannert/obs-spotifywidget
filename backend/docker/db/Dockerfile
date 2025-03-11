@@ -14,7 +14,7 @@ USER root
 ENV ACCEPT_EULA=Y
 ENV MSSQL_SA_PASSWORD=StrongPassw0rd
 ENV DB_LOGIN=dev_test
-ENV DB_PASSWORD=123
+ENV DB_PASSWORD=r00t.R00T
 ENV DB_DATABASE=TestDB
 ENV DB_USERS_TABLE=Users
 ENV DB_SPOTIFY_TABLE=Test
@@ -34,6 +34,7 @@ COPY . /usr/config
 # Grant permissions for to our scripts to be executable
 RUN chmod +x /usr/config/entrypoint.sh
 RUN chmod +x /usr/config/import-data.sh
+RUN chmod +x /usr/config/healthcheck.sh
 
 # Convert all the file endings
 # RUN dos2unix ./usr/entrypoint.sh

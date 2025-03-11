@@ -4,8 +4,9 @@
   "description": "Backend Server for spotify widget",
   "main": "index.js",
   "scripts": {
-    "start": "cross-env NODE_ENV=dev npx tsx index.ts",
+    "start": "npx tsx index.ts",
     "test": "npx tsx index.ts",
+    "dev": "cross-env NODE_ENV=dev npx tsx index.ts",
     "prod": "cross-env NODE_ENV=prod npx tsx index.ts"
   },
   "author": "",
