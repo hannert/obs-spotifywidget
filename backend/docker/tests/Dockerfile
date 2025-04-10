@@ -7,8 +7,8 @@
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 FROM mcr.microsoft.com/playwright:v1.50.0-noble
 
-# Use production node environment by default.
-ENV NODE_ENV=dev
+# Use docker node environment by default.
+ENV NODE_ENV=docker
 # user root
 
 WORKDIR /app

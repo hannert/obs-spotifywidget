@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "npx tsx index.ts",
-    "test": "npx tsx index.ts",
+    "local-test": "cross-env NODE_ENV=dev npx playwright test",
+    "docker-test": "cross-env NODE_ENV=docker npx playwright test",
+    "docker-start": "cross-env NODE_ENV=docker npx tsx index.ts",
     "dev": "cross-env NODE_ENV=dev npx tsx index.ts",
     "prod": "cross-env NODE_ENV=prod npx tsx index.ts"
   },
