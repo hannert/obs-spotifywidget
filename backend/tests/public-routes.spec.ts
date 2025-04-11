@@ -32,7 +32,7 @@ test('Login-Unsuccessful', async ({ request }) => {
 });
 
 // Test for a successful (200) status code user login with authorization tokens set in response
-auth('Regenerate', async ({ request  }) => {
+test('Regenerate', async ({ request  }) => {
   const response = await request.post(`/regenerate`, {
   });
   expect(response.ok()).toBeTruthy();
