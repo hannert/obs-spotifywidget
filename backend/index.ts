@@ -13,8 +13,10 @@ console.log(`.env.${process.env.NODE_ENV}`)
 export const base_url = process.env.BASE_URL;
 // !~ Variable to see if in production. Webkit (Safari) doesn't store cookies when they are set to production settings (SameSite:None, Secure) -> (SameSite:Lax)
 export const prod = yn(process.env.PROD);
+export const docker = yn(process.env.DOCKER);
+
 export const cookieSameSite = prod ? 'lax' : 'none';
-export const cookieSecure = true;
+export const cookieSecure = docker ? false : true;
 console.log(cookieSameSite)
 console.log(cookieSecure)
 
