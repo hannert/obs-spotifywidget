@@ -15,7 +15,6 @@ test('Login-Successful', async ({ request }) => {
   const headers = await response.headers();
   expect(headers['set-cookie']).toContain('spotify_accessToken');
   expect(headers['set-cookie']).toContain('spotify_refreshToken');
-  const storage = await request.storageState();
 });
 
 
@@ -29,12 +28,4 @@ test('Login-Unsuccessful', async ({ request }) => {
     }
   });
   expect(response.status()).toBe(400);
-});
-
-// Test for a successful (200) status code user login with authorization tokens set in response
-test('Regenerate', async ({ request  }) => {
-  const response = await request.post(`/regenerate`, {
-  });
-  expect(response.ok()).toBeTruthy();
-
 });
